@@ -6,6 +6,9 @@ import { EXPERIENCE, LINKS, PROFILE, PROJECTS, SKILLS } from "../src/content/por
 import { aboutHtml, boardHtml, projectsHtml, skillsHtml, statusClass } from "../src/fallback/html";
 import { renderFallback } from "../src/fallback/renderFallback";
 import { TERMINAL_BANNER, runCommand } from "../src/systems/terminal";
+import { QUESTS } from "../src/systems/quests/definitions";
+import { SECRET_ART } from "../src/systems/quests/helpers";
+import { planTalk } from "../src/systems/quests/npcTalk";
 
 // Built from parts so this guard does not itself contain the cancelled startup's name.
 const FORBIDDEN = new RegExp(["deduck", "ing"].join(""), "i");
@@ -51,6 +54,17 @@ describe("portfolio content", () => {
       TERMINAL_BANNER.join("\n"),
       ...["help", "about", "experience", "projects", "skills", "contact"].map((c) =>
         runCommand(c).lines.join("\n"),
+      ),
+      JSON.stringify(QUESTS),
+      SECRET_ART.join("\n"),
+      ...Object.keys(NPCS).map((id) =>
+        JSON.stringify(
+          planTalk(id, {
+            isOnStep: () => false,
+            isDone: () => false,
+            progress: () => ({ status: "locked" as const }),
+          }),
+        ),
       ),
       readFileSync("index.html", "utf8"),
       readFileSync("vite.config.ts", "utf8"),

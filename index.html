@@ -36,10 +36,12 @@
     </script>
   </head>
   <body>
-    <a id="mode-toggle" class="skip-link" href="?plain=1">Skip game: view as plain page</a>
+    <header class="top-bar">
+      <a id="mode-toggle" class="skip-link" href="?plain=1">Skip game: view as plain page</a>
+    </header>
     <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
 
-    <div id="game-root" aria-label="Interactive town portfolio"></div>
+    <div id="game-root" role="region" aria-label="Interactive town portfolio"></div>
     <div
       id="loading"
       class="loading"

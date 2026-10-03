@@ -81,11 +81,13 @@ src/
   content/    portfolio.ts (single source of truth), npcs.ts, buildings.ts
   config/     assets.ts (asset manifest)
   world/      map data, tile indices, pixel font, generated art
-  systems/    pure logic: input, dialog, interaction zones, terminal parser, contact/mailto, audio
+  systems/    pure logic: input, dialog, interaction zones, terminal parser, contact/mailto,
+              quests/ (engine, definitions, persistence, mini-game rules)
   scenes/     BootScene (loading), WorldScene (town and interiors)
   ui/         DOM overlays: panels, dialog, HUD, title, joystick, contact form, terminal
   fallback/   HTML builders shared by panels and the plain page
-  game/       start-up wiring (Phaser is imported only here, so it loads lazily)
+  audio/      music data, sequencer, mixer math, effects and the Web Audio engine
+  game/       start-up wiring, quest director, bug-hunt controller (Phaser loads lazily from here)
   main.ts     chooses game or plain mode
 tests/        Vitest
 ```
@@ -93,6 +95,63 @@ tests/        Vitest
 Panels, dialogs and the HUD are real DOM on top of the canvas, so text is selectable and readable
 by screen readers, focus is trapped in a panel and returned on close, and the game world freezes
 while a panel is open. The plain page never downloads Phaser.
+
+## Side quests (optional)
+
+Seven optional quests make the town more fun. None of them gates content: every panel and the plain
+page work without touching a quest. Open the quest log with `Q` or the "Quests" HUD button; it shows
+badges, active, completed and locked quests, hints and a reset button. Progress is saved in
+`localStorage` (the game still works if storage is blocked) and never leaves the browser.
+
+| Quest            | How it works                                                                                                              |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------- |
+| Skill gems       | Three gems are hidden in quiet corners; each pops up the skills of one level from `SKILLS`. Reward: gem trail.            |
+| Special delivery | The post office clerk gives a parcel for the smith; the Projects panel then features a random project.                    |
+| Bug hunt         | The guide starts a 30 s plaza mini-game: squash 7 bugs by walking into them or tapping. No fail state.                    |
+| Gone fishing     | Cast at the pond and press at the bite. Fish are named after `PROJECTS` tags and show their project. Reward: fishing hat. |
+| Match the stack  | The librarian's 4-round quiz built from `PROJECTS`; wrong answers just show the right one.                                |
+| Terminal secret  | A hidden command on the retro computer (the librarian hints at it). `achievements` lists progress.                        |
+| Night watch      | Stand still by the fountain for about ten seconds.                                                                        |
+
+Finishing all seven opens a friendly celebration with a contact call to action built from `LINKS`.
+
+### Adding a quest
+
+1. Append a definition to `src/systems/quests/definitions.ts` (id, title, giver, steps, reward). A
+   step has a `trigger`: an event type, optional `where` field matches, and optional `count` or
+   `distinct` counting.
+2. Emit the events it listens for (`quests.emit({ type: "..." })`) from a scene, panel or the
+   director in `src/game/questDirector.ts`. Add a new event type to `QuestEvent` if needed.
+3. If it has a giver, add that NPC's lines in `src/systems/quests/npcTalk.ts`.
+4. Add tests next to `tests/quests.test.ts`. The "all seven quests" test will tell you to update the
+   count.
+
+Quest text must not state facts about Momen. Anything factual is built from `portfolio.ts`.
+
+### Fun facts
+
+`FUN_FACTS` in `portfolio.ts` is empty on purpose (`TODO(Momen)`). When you add entries, the guide,
+the night-watch sparkle and the About panel / plain page start using them. While it is empty, none of
+those features appear.
+
+## Audio
+
+All audio is generated in the browser with the Web Audio API: no audio files, no licences, no download.
+
+- `src/audio/tracks.ts` holds the music as data: a title intro, a town loop, a calmer interior loop,
+  a bug-hunt loop and a victory jingle. Patterns are compact strings (`C4:2 E4 -:2`), played by a
+  lookahead sequencer (`sequencer.ts`) that is tested on a mock clock.
+- `src/audio/sfxRecipes.ts` describes the 14 sound effects (footsteps, interact, pickups, quest
+  steps, squash, bite, catch, terminal keys...).
+- `src/audio/engine.ts` owns the audio graph: crossfades between scenes, ducking (quieter and duller)
+  while a panel, dialog or the fishing card is open, a master limiter, and pause-when-hidden.
+- Nothing starts before the visitor clicks "Start with sound" or "Start silent" (silent is focused by
+  default; the last choice is remembered). `M` mutes, and the "Audio" HUD button opens separate music
+  and effects sliders. Leaving the game (the plain-page link) closes the audio context.
+
+To use a real recording, set `file` for a track in `src/config/audio.ts`
+(for example `{ town: { file: "audio/town.ogg" } }`, file under `public/audio/`). It loops (the title
+and victory tracks play once) and the generated version is the fallback if the file fails to load.
 
 ## Deploy to momenshili.app
 
@@ -108,8 +167,8 @@ instructions). The canonical URL, sitemap and social tags assume `https://momens
 
 ## Notes
 
-- Initial download is about 4 KB of JS plus 3 KB of CSS and the HTML; the game engine (about
-  335 KB gzipped) loads on demand when the game starts.
+- Initial download is about 4 KB of JS plus 2 KB of CSS and the HTML. The game engine, quests,
+  audio and the game styles (about 355 KB gzipped) load on demand when the game starts.
 - `prefers-reduced-motion` turns off water, flag, NPC and fountain animation and the camera
   smoothing/fade.
 - Run `npm run lint && npm run typecheck && npm run test` before committing.

@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import "../styles/game.css";
 import { AudioEngine } from "../audio/engine";
 import { BootScene } from "../scenes/BootScene";
 import { WorldScene } from "../scenes/WorldScene";

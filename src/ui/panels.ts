@@ -180,7 +180,12 @@ export class PanelManager {
         tabindex: "-1",
       },
       el("header", { class: "panel-header" }, el("h2", { id: titleId }, def.title), closeBtn),
-      el("div", { class: "panel-body" }, view.element),
+      // Focusable so keyboard users can scroll long content even when it has no links or buttons.
+      el(
+        "div",
+        { class: "panel-body", tabindex: "0", role: "region", "aria-labelledby": titleId },
+        view.element,
+      ),
       el("footer", { class: "panel-footer" }, "Esc to close"),
     );
     const overlay = el("div", { class: "panel-backdrop" }, dialog);
