@@ -1,11 +1,20 @@
 import { EXPERIENCE, LINKS, PROFILE, PROJECTS, SKILLS } from "../content/portfolio";
 import { BUILDINGS, findBuilding, type BuildingId } from "../content/buildings";
+import { SECRET_ART } from "./quests/helpers";
+import type { QuestEvent } from "./quests/types";
 
 export type TerminalAction = { type: "clear" } | { type: "open"; target: BuildingId };
 
 export interface TerminalResult {
   lines: string[];
   action?: TerminalAction;
+  /** Quest events caused by the command (for example the secret command). */
+  events?: QuestEvent[];
+}
+
+/** What the terminal needs from the quest system; optional so the parser stays standalone. */
+export interface TerminalContext {
+  achievements(): string[];
 }
 
 export const TERMINAL_BANNER = [
@@ -20,6 +29,7 @@ const COMMANDS: ReadonlyArray<[string, string]> = [
   ["projects", "what I have built"],
   ["skills", "what I work with"],
   ["contact", "how to reach me"],
+  ["achievements", "show quest progress"],
   ["open <building>", "walk to a building"],
   ["clear", "clear the screen"],
 ];
@@ -77,7 +87,7 @@ function open(args: string[]): TerminalResult {
   };
 }
 
-export function runCommand(raw: string): TerminalResult {
+export function runCommand(raw: string, context?: TerminalContext): TerminalResult {
   const trimmed = raw.trim();
   if (trimmed === "") return { lines: [] };
   const [cmd = "", ...args] = trimmed.split(/\s+/);
@@ -96,6 +106,11 @@ export function runCommand(raw: string): TerminalResult {
       return { lines: contact() };
     case "clear":
       return { lines: [], action: { type: "clear" } };
+    case "achievements":
+      return { lines: context ? context.achievements() : ["No quest data is available here."] };
+    case "xyzzy":
+      // Deliberately missing from `help`: it is the secret for the Terminal secret quest.
+      return { lines: [...SECRET_ART], events: [{ type: "command_run", command: "xyzzy" }] };
     case "open":
       return open(args);
     default:

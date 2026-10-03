@@ -1,9 +1,11 @@
 import { NPCS } from "../../content/npcs";
 import type { DialogLine } from "../dialog";
+import { funFactLine } from "./helpers";
 import type { QuestEvent } from "./types";
 
 /** Work to do once the dialog box closes. */
-export type AfterAction = { type: "deliver_parcel" };
+export type AfterAction =
+  { type: "deliver_parcel" } | { type: "start_bug_hunt" } | { type: "open_quiz" };
 
 export interface TalkPlan {
   lines: DialogLine[];
@@ -25,7 +27,11 @@ const say = (speaker: string, text: string): DialogLine => ({ speaker, text });
  * Decides what an NPC says and which quest events the conversation causes. Always includes the
  * NPC's normal portfolio dialog first, so quests only ever add to it.
  */
-export function planTalk(npcId: string, quests: QuestView): TalkPlan | null {
+export function planTalk(
+  npcId: string,
+  quests: QuestView,
+  random: () => number = Math.random,
+): TalkPlan | null {
   const npc = NPCS[npcId];
   if (!npc) return null;
   const plan: TalkPlan = {
@@ -57,6 +63,51 @@ export function planTalk(npcId: string, quests: QuestView): TalkPlan | null {
       say(speaker, "While you are here, let me pull one project off the shelf for you."),
     ];
     plan.after.push({ type: "deliver_parcel" });
+  }
+
+  if (npcId === "guide") {
+    const speaker = npc.name;
+    const fact = funFactLine(random);
+    if (fact) plan.lines.push(say(speaker, `Fun fact: ${fact}`));
+    const status = quests.progress("bug-hunt").status;
+    if (status === "locked") {
+      plan.lines.push(
+        say(speaker, "Oh no, bugs have scurried into the plaza! Could you squash seven of them?"),
+        say(
+          speaker,
+          "You have thirty seconds. Walk into them or tap them. No pressure, try as often as you like.",
+        ),
+      );
+      plan.after.push({ type: "start_bug_hunt" });
+    } else if (status === "active") {
+      plan.lines.push(say(speaker, "The bugs are back! Ready for another go?"));
+      plan.after.push({ type: "start_bug_hunt" });
+    } else {
+      plan.lines.push(say(speaker, "The plaza is bug-free, thanks to you!"));
+    }
+  }
+
+  if (npcId === "reader") {
+    const speaker = npc.name;
+    if (!quests.isDone("terminal-secret")) {
+      plan.lines.push(
+        say(
+          speaker,
+          "Psst. Old computers keep secrets. A word from an ancient cave adventure might still wake that one up.",
+        ),
+      );
+    }
+    if (quests.isDone("quiz")) {
+      plan.lines.push(say(speaker, "Welcome back, bookworm!"));
+    } else {
+      plan.lines.push(
+        say(
+          speaker,
+          "Fancy a quick quiz? Match each project to a technology it uses. Wrong answers cost nothing.",
+        ),
+      );
+      plan.after.push({ type: "open_quiz" });
+    }
   }
 
   return plan;

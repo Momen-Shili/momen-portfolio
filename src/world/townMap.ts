@@ -29,6 +29,14 @@ const FOUNTAIN = { tx: 23, ty: 19 };
 const BOARD = { tx: 20, ty: 16 };
 const POND = { x0: 10, y0: 17, x1: 14, y1: 20 };
 
+/** The paved plaza in world pixels; the bug hunt happens here. */
+export const PLAZA_PX = {
+  x0: PLAZA.x0 * TILE,
+  y0: PLAZA.y0 * TILE,
+  x1: (PLAZA.x1 + 1) * TILE,
+  y1: (PLAZA.y1 + 1) * TILE,
+};
+
 /** Skill gems tucked into corners of the town, one per skill group. */
 const GEM_SPOTS: ReadonlyArray<{ group: SkillGroup; tx: number; ty: number; frame: number }> = [
   { group: "Advanced", tx: 3, ty: 8, frame: 0 },
@@ -133,6 +141,17 @@ export function buildTown(): MapDef {
   for (let y = POND.y0; y <= POND.y1; y++) {
     for (let x = POND.x0; x <= POND.x1; x++) waterTiles.push(g.idx(x, y));
   }
+
+  // Fishing spot on the east shore of the pond.
+  zones.push({
+    id: "fishing",
+    x: tilePx(POND.x1 + 1),
+    y: tilePx(POND.y0),
+    w: 2 * TILE,
+    h: (POND.y1 - POND.y0 + 1) * TILE,
+    prompt: "Go fishing in the pond",
+    action: { type: "fish" },
+  });
 
   // Buildings, door paths, signs, zones.
   for (const { id, bx, by } of BUILDING_PLACEMENTS) {

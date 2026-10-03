@@ -8,6 +8,8 @@ import { QuestEngine } from "../systems/quests/engine";
 import { describeNotification } from "../systems/quests/notify";
 import { ProgressStore, createSafeStorage } from "../systems/quests/storage";
 import { DialogBox } from "../ui/dialogBox";
+import { FishingCard } from "../ui/fishingCard";
+import { MinigameHud } from "../ui/minigameHud";
 import { el, isTouchDevice } from "../ui/dom";
 import { Hud } from "../ui/hud";
 import { hideLoading, setLoadingProgress } from "../ui/loading";
@@ -28,8 +30,8 @@ export function startGame(root: HTMLElement): RunningGame {
 
   const sfx = new Sfx();
   const quests = new QuestEngine(QUESTS, new ProgressStore(createSafeStorage(), QUESTS));
-  const state = { title: true, panel: false, dialog: false };
-  const isBlocked = (): boolean => state.title || state.panel || state.dialog;
+  const state = { title: true, panel: false, dialog: false, fishing: false };
+  const isBlocked = (): boolean => state.title || state.panel || state.dialog || state.fishing;
   const input = new InputState(window, isBlocked);
   let game: Phaser.Game | null = null;
   let closeTitle: (() => void) | null = null;
@@ -75,6 +77,8 @@ export function startGame(root: HTMLElement): RunningGame {
     dialog: null as unknown as DialogBox,
     hud: null as unknown as Hud,
     director: null as unknown as QuestDirector,
+    fishing: null as unknown as FishingCard,
+    minigameHud: null as unknown as MinigameHud,
   };
 
   const panels = new PanelManager(ui, {
@@ -114,14 +118,44 @@ export function startGame(root: HTMLElement): RunningGame {
   hud.setVisible(false);
   const controls = isTouchDevice() ? new VirtualControls(ui, input) : null;
   controls?.setVisible(false);
-  const director = new QuestDirector(quests, { dialog, panels });
-  Object.assign(ctx, { panels, dialog, hud, director });
+  const minigameHud = new MinigameHud(ui);
+  const fishing = new FishingCard(ui, {
+    caughtTags: () => quests.progress("fishing").seen,
+    onCatch: (fish) => {
+      sfx.play("catch");
+      quests.emit({ type: "fish_caught", tag: fish.tag });
+    },
+    onBite: () => sfx.play("bite"),
+    onChange: (open) => {
+      state.fishing = open;
+      input.reset();
+      freezeWorld(open || state.panel || state.dialog);
+      syncUi();
+    },
+  });
+  const director = new QuestDirector(quests, { dialog, panels }, () => ctx.world);
+  Object.assign(ctx, { panels, dialog, hud, director, fishing, minigameHud });
 
+  /** Opens the celebration once the player is free (not mid-dialog or mid-panel). */
+  let celebrationTimer = 0;
+  const celebrateSoon = (attempt = 0): void => {
+    window.clearTimeout(celebrationTimer);
+    celebrationTimer = window.setTimeout(() => {
+      if (!isBlocked()) {
+        sfx.play("complete");
+        panels.open("celebration");
+      } else if (attempt < 20) celebrateSoon(attempt + 1);
+    }, 1500);
+  };
   const refreshQuestUi = (): void => hud.setQuestCount(quests.doneCount, quests.total);
   refreshQuestUi();
   const stopQuestUi = quests.subscribe((notes) => {
     refreshQuestUi();
-    for (const note of notes) hud.showQuestToast(describeNotification(note));
+    for (const note of notes) {
+      hud.showQuestToast(describeNotification(note));
+      if (note.type === "quest_done") sfx.play("quest");
+      if (note.type === "all_done") celebrateSoon();
+    }
   });
   /** Q opens the quest log from anywhere in the world. */
   const onQuestKey = (e: KeyboardEvent): void => {
@@ -154,6 +188,9 @@ export function startGame(root: HTMLElement): RunningGame {
       closeTitle?.();
       window.removeEventListener("keydown", onQuestKey);
       stopQuestUi();
+      window.clearTimeout(celebrationTimer);
+      fishing.close();
+      minigameHud.destroy();
       input.destroy();
       panels.destroy();
       dialog.close();

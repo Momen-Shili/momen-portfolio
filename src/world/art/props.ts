@@ -50,6 +50,56 @@ export function drawGems(): HTMLCanvasElement {
   return canvas;
 }
 
+/** Two 12x12 frames of a scurrying beetle; the legs swap between frames. */
+export function drawBug(): HTMLCanvasElement {
+  const [canvas, ctx] = createCanvas(24, 12);
+  for (let f = 0; f < 2; f++) {
+    const ox = f * 12;
+    const legs = f === 0 ? [3, 6, 9] : [4, 7, 10];
+    for (const y of legs) {
+      rect(ctx, ox + 2, y - 1, 2, 1, "#1b1b22");
+      rect(ctx, ox + 8, y - (f === 0 ? 0 : 1), 2, 1, "#1b1b22");
+    }
+    disc(ctx, ox + 6, 6, 3, "#d8453a");
+    rect(ctx, ox + 5, 2, 2, 2, "#2a2230");
+    dot(ctx, ox + 4, 5, "#2a2230");
+    dot(ctx, ox + 8, 6, "#2a2230");
+    dot(ctx, ox + 5, 8, "#2a2230");
+    dot(ctx, ox + 5, 1, "#1b1b22");
+    dot(ctx, ox + 7, 1, "#1b1b22");
+  }
+  return canvas;
+}
+
+export function drawSplat(): HTMLCanvasElement {
+  const [canvas, ctx] = createCanvas(12, 8);
+  rect(ctx, 2, 2, 8, 4, "#8fcf5b");
+  rect(ctx, 0, 3, 12, 2, "#8fcf5b");
+  rect(ctx, 4, 0, 4, 8, "#8fcf5b");
+  dot(ctx, 3, 3, "#d8453a");
+  dot(ctx, 8, 4, "#d8453a");
+  return canvas;
+}
+
+export function drawSpark(): HTMLCanvasElement {
+  const [canvas, ctx] = createCanvas(7, 7);
+  rect(ctx, 3, 0, 1, 7, "#fff3c0");
+  rect(ctx, 0, 3, 7, 1, "#fff3c0");
+  rect(ctx, 2, 2, 3, 3, "#ffffff");
+  return canvas;
+}
+
+/** Straw fishing hat: the Angler cosmetic. */
+export function drawHat(): HTMLCanvasElement {
+  const [canvas, ctx] = createCanvas(18, 10);
+  rect(ctx, 1, 5, 16, 3, "#e0b85a");
+  rect(ctx, 1, 5, 16, 1, "#f2d27a");
+  rect(ctx, 5, 1, 8, 5, "#d6a540");
+  rect(ctx, 5, 4, 8, 1, "#2f62a8");
+  outline(canvas, "#3a2a08");
+  return canvas;
+}
+
 export function drawBush(): HTMLCanvasElement {
   const [canvas, ctx] = createCanvas(18, 14);
   disc(ctx, 9, 7, 5, "#2a8535");

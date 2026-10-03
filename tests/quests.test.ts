@@ -11,7 +11,7 @@ import {
   parseState,
   type KeyValueStorage,
 } from "../src/systems/quests/storage";
-import type { QuestDef } from "../src/systems/quests/types";
+import type { QuestDef, QuestEvent } from "../src/systems/quests/types";
 
 function memoryStorage(): KeyValueStorage & { data: Map<string, string> } {
   const data = new Map<string, string>();
@@ -102,7 +102,8 @@ describe("QuestEngine", () => {
   });
 
   it("emits all_done exactly when the last quest completes", () => {
-    const { engine } = engineWith();
+    const pair = QUESTS.filter((q) => ["skill-gems", "delivery"].includes(q.id));
+    const { engine } = engineWith(pair);
     engine.emit({ type: "npc_talked", npc: "clerk" });
     const mid = engine.emit({ type: "parcel_delivered" });
     expect(mid.map((n) => n.type)).toEqual(["quest_done"]);
@@ -111,6 +112,39 @@ describe("QuestEngine", () => {
     for (const id of Object.values(GEM_IDS)) last = engine.emit({ type: "item_collected", id });
     expect(last.map((n) => n.type)).toEqual(["quest_done", "all_done"]);
     expect(engine.allDone).toBe(true);
+  });
+
+  it("lets a player complete all seven quests, ending with a single all_done", () => {
+    const { engine } = engineWith();
+    expect(engine.total).toBe(7);
+    const all: QuestEvent[] = [
+      { type: "npc_talked", npc: "clerk" },
+      { type: "parcel_delivered" },
+      { type: "npc_talked", npc: "guide" },
+      { type: "minigame_won", game: "bug-hunt" },
+      { type: "npc_talked", npc: "reader" },
+      { type: "quiz_completed", correct: 3, rounds: 4 },
+      { type: "command_run", command: "xyzzy" },
+      { type: "idle_at", place: "fountain" },
+      { type: "fish_caught", tag: "PHP" },
+      { type: "fish_caught", tag: "MySQL" },
+      { type: "fish_caught", tag: "Supabase" },
+      ...Object.values(GEM_IDS).map((id): QuestEvent => ({ type: "item_collected", id })),
+    ];
+    const notes = all.flatMap((event) => engine.emit(event));
+    expect(engine.allDone).toBe(true);
+    expect(notes.filter((n) => n.type === "all_done")).toHaveLength(1);
+    expect(notes.filter((n) => n.type === "quest_done")).toHaveLength(7);
+    expect(engine.state.badges).toHaveLength(7);
+    expect([...engine.state.cosmetics].sort()).toEqual(["fishing-hat", "gem-trail"]);
+  });
+
+  it("only counts distinct fish towards the fishing quest", () => {
+    const { engine } = engineWith();
+    engine.emit({ type: "fish_caught", tag: "PHP" });
+    engine.emit({ type: "fish_caught", tag: "PHP" });
+    engine.emit({ type: "fish_caught", tag: "MySQL" });
+    expect(engine.progress("fishing")).toMatchObject({ status: "active", count: 2 });
   });
 
   it("notifies subscribers and supports unsubscribe", () => {

@@ -46,7 +46,10 @@ function section(title: string, items: readonly HTMLElement[], empty: string): H
 }
 
 /** Builds the quest log. Quests are optional bonuses; nothing here gates portfolio content. */
-export function createQuestLog(engine: QuestEngine): { element: HTMLElement; focus: HTMLElement } {
+export function createQuestLog(
+  engine: QuestEngine,
+  options: { onCelebrate: () => void },
+): { element: HTMLElement; focus: HTMLElement } {
   const element = el("div", { class: "quest-log" });
   const focus = el("p", { class: "quest-summary", tabindex: "-1" });
   let confirmTimer = 0;
@@ -101,6 +104,13 @@ export function createQuestLog(engine: QuestEngine): { element: HTMLElement; foc
       }, CONFIRM_MS);
     });
 
+    const celebrate = el(
+      "button",
+      { type: "button", class: "btn-primary quest-celebrate" },
+      "Replay the celebration",
+    );
+    celebrate.addEventListener("click", options.onCelebrate);
+
     element.replaceChildren(
       el("div", { class: "quest-top" }, focus, meter),
       el(
@@ -124,6 +134,7 @@ export function createQuestLog(engine: QuestEngine): { element: HTMLElement; foc
         byStatus("locked").map((d) => questItem(engine, d)),
         "No locked quests.",
       ),
+      ...(engine.allDone ? [celebrate] : []),
       reset,
     );
   };

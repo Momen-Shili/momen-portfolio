@@ -1,8 +1,12 @@
 import type { BuildingId } from "../../content/buildings";
-import { TERMINAL_BANNER, runCommand } from "../../systems/terminal";
+import { TERMINAL_BANNER, runCommand, type TerminalContext } from "../../systems/terminal";
+import type { QuestEvent } from "../../systems/quests/types";
 import { el, nextId } from "../dom";
 
-export function createTerminal(onOpen: (target: BuildingId) => void): {
+export function createTerminal(
+  onOpen: (target: BuildingId) => void,
+  services: { context: TerminalContext; emit: (event: QuestEvent) => void },
+): {
   element: HTMLElement;
   input: HTMLInputElement;
 } {
@@ -42,12 +46,13 @@ export function createTerminal(onOpen: (target: BuildingId) => void): {
       cursor = history.length;
     }
     print(`C:\\momen> ${raw}`, "term-echo");
-    const result = runCommand(raw);
+    const result = runCommand(raw, services.context);
     if (result.action?.type === "clear") {
       out.replaceChildren();
       return;
     }
     result.lines.forEach((line) => print(line));
+    result.events?.forEach((event) => services.emit(event));
     if (result.action?.type === "open") {
       const target = result.action.target;
       input.disabled = true;

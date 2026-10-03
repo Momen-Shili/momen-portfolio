@@ -44,6 +44,10 @@ export const ASSETS: readonly AssetSpec[] = [
 
   { key: "tree", draw: props.drawTree },
   { key: "bush", draw: props.drawBush },
+  { key: "bug", frame: { width: 12, height: 12 }, draw: props.drawBug },
+  { key: "splat", draw: props.drawSplat },
+  { key: "spark", draw: props.drawSpark },
+  { key: "hat", draw: props.drawHat },
   { key: "gem", frame: { width: 12, height: 12 }, draw: props.drawGems },
   { key: "fountain", frame: { width: 32, height: 32 }, draw: props.drawFountain },
   { key: "lamp", draw: props.drawLamp },

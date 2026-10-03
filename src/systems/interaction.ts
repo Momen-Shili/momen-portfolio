@@ -1,10 +1,20 @@
-export type PanelId = "projects" | "skills" | "contact" | "about" | "board" | "terminal" | "quests";
+export type PanelId =
+  | "projects"
+  | "skills"
+  | "contact"
+  | "about"
+  | "board"
+  | "terminal"
+  | "quests"
+  | "quiz"
+  | "celebration";
 
 export type ZoneAction =
   | { type: "panel"; panel: PanelId }
   | { type: "enter"; map: string; spawn: string }
   | { type: "exit"; map: string; spawn: string }
   | { type: "dialog"; npc: string }
+  | { type: "fish" }
   | { type: "gem"; group: "Advanced" | "Proficient" | "Growing" }
   | { type: "wish" };
 

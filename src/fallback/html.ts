@@ -5,6 +5,7 @@
 import { BUILDINGS } from "../content/buildings.ts";
 import {
   EXPERIENCE,
+  FUN_FACTS,
   LINKS,
   PROFILE,
   PROJECTS,
@@ -90,6 +91,12 @@ export function experienceHtml(): string {
   ).join("")}</ol>`;
 }
 
+/** Rendered only when FUN_FACTS has entries, so the section never shows up empty. */
+export function funFactsHtml(): string {
+  if (FUN_FACTS.length === 0) return "";
+  return `<h3>Fun facts</h3><ul class="board-list">${FUN_FACTS.map((f) => `<li>${esc(f)}</li>`).join("")}</ul>`;
+}
+
 export function aboutHtml(): string {
   return `<div class="about">
   <div class="about-head">
@@ -106,6 +113,7 @@ export function aboutHtml(): string {
   <p class="about-bio">${esc(PROFILE.bio)}</p>
   <h3>Experience</h3>
   ${experienceHtml()}
+  ${funFactsHtml()}
 </div>`;
 }
 

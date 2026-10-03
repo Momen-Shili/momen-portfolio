@@ -1,3 +1,4 @@
+import type { WorldApi } from "./context";
 import type { QuestEngine } from "../systems/quests/engine";
 import { GEM_IDS, gemLines, pickHighlight, type SkillGroup } from "../systems/quests/helpers";
 import { planTalk, type AfterAction } from "../systems/quests/npcTalk";
@@ -13,6 +14,7 @@ export class QuestDirector {
   constructor(
     private readonly quests: QuestEngine,
     private readonly ui: { dialog: DialogBox; panels: PanelManager },
+    private readonly getWorld: () => WorldApi | null,
   ) {}
 
   /** Returns false when the NPC has nothing to say (unknown id). */
@@ -31,9 +33,17 @@ export class QuestDirector {
 
   private runAfter(actions: readonly AfterAction[]): void {
     for (const action of actions) {
-      if (action.type === "deliver_parcel") {
-        this.quests.emit({ type: "parcel_delivered" });
-        this.ui.panels.open("projects", { highlightProject: pickHighlight().name });
+      switch (action.type) {
+        case "deliver_parcel":
+          this.quests.emit({ type: "parcel_delivered" });
+          this.ui.panels.open("projects", { highlightProject: pickHighlight().name });
+          break;
+        case "start_bug_hunt":
+          this.getWorld()?.startBugHunt();
+          break;
+        case "open_quiz":
+          this.ui.panels.open("quiz");
+          break;
       }
     }
   }

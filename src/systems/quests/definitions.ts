@@ -44,4 +44,97 @@ export const QUESTS: readonly QuestDef[] = [
       badge: { id: "courier", name: "Courier", description: "Delivered the parcel." },
     },
   },
+  {
+    id: "bug-hunt",
+    title: "Bug hunt",
+    giver: "guide",
+    blurb: "Pesky bugs have scurried into the plaza.",
+    lockedHint: "Talk to the town guide in the plaza.",
+    unlock: { type: "npc_talked", where: { npc: "guide" } },
+    steps: [
+      {
+        id: "squash",
+        text: "Squash 7 bugs in the plaza before the timer runs out",
+        hint: "Walk into the bugs or tap them. If time runs out, talk to the guide to try again.",
+        trigger: { type: "minigame_won", where: { game: "bug-hunt" } },
+      },
+    ],
+    reward: {
+      badge: { id: "debugger", name: "Debugger", description: "Cleared the plaza of bugs." },
+    },
+  },
+  {
+    id: "fishing",
+    title: "Gone fishing",
+    giver: null,
+    blurb: "Catch three different fish at the pond.",
+    lockedHint: "Look for water.",
+    steps: [
+      {
+        id: "catch",
+        text: "Catch three different fish",
+        hint: "Stand on the pond shore and press E (or tap the prompt) to cast. Press again when the bobber dips.",
+        trigger: { type: "fish_caught", distinct: "tag", count: 3 },
+      },
+    ],
+    reward: {
+      badge: { id: "angler", name: "Angler", description: "Caught three different fish." },
+      cosmetic: "fishing-hat",
+    },
+  },
+  {
+    id: "quiz",
+    title: "Match the stack",
+    giver: "reader",
+    blurb: "The librarian has a four-round quiz about the projects.",
+    lockedHint: "Talk to the librarian outside the library.",
+    unlock: { type: "npc_talked", where: { npc: "reader" } },
+    steps: [
+      {
+        id: "answer",
+        text: "Finish the four-round quiz",
+        hint: "Talk to the librarian again and answer. Wrong answers cost nothing.",
+        trigger: { type: "quiz_completed" },
+      },
+    ],
+    reward: {
+      badge: { id: "bookworm", name: "Bookworm", description: "Finished the stack quiz." },
+    },
+  },
+  {
+    id: "terminal-secret",
+    title: "Terminal secret",
+    giver: null,
+    blurb: "The retro computer in the house hides a secret command.",
+    lockedHint: "Visit the retro computer.",
+    steps: [
+      {
+        id: "command",
+        text: "Find the secret command on the retro computer",
+        hint: "The librarian mentioned a word from an ancient cave adventure. Type it on the retro computer.",
+        trigger: { type: "command_run", where: { command: "xyzzy" } },
+      },
+    ],
+    reward: {
+      badge: { id: "secret-keeper", name: "Secret Keeper", description: "Cracked the terminal." },
+    },
+  },
+  {
+    id: "night-watch",
+    title: "Night watch",
+    giver: null,
+    blurb: "Some things only happen to those who wait.",
+    lockedHint: "Be patient by the fountain.",
+    steps: [
+      {
+        id: "watch",
+        text: "Stand perfectly still by the fountain for about ten seconds",
+        hint: "The fountain is in the middle of the plaza. Do not move a muscle.",
+        trigger: { type: "idle_at", where: { place: "fountain" } },
+      },
+    ],
+    reward: {
+      badge: { id: "night-watch", name: "Night Watch", description: "Waited by the fountain." },
+    },
+  },
 ];

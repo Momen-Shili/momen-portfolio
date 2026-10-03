@@ -107,3 +107,10 @@ export const EXPERIENCE: ExperienceItem[] = [
   { period: "2021 - 2023", role: "Junior Developer", org: "NaroTeam SARL" },
   { period: "2021", role: "Platform migration, modules", org: "MyTek.tn" },
 ];
+
+/**
+ * Optional fun facts. NPCs, the night-watch easter egg and the About panel use them when the list
+ * is not empty, and everything degrades gracefully while it is empty.
+ */
+// TODO(Momen): add real fun facts (plain sentences, one per entry).
+export const FUN_FACTS: string[] = [];

@@ -2,8 +2,11 @@ import type { BuildingId } from "../content/buildings";
 import { aboutHtml, boardHtml, contactLinksHtml, projectsHtml, skillsHtml } from "../fallback/html";
 import type { PanelId } from "../systems/interaction";
 import type { QuestEngine } from "../systems/quests/engine";
+import { achievementLines } from "../systems/quests/helpers";
 import { createContactForm } from "./contactForm";
+import { createCelebration } from "./celebration";
 import { createQuestLog } from "./questLog";
+import { createQuiz } from "./quizPanel";
 import { el, focusableIn, nextId } from "./dom";
 import { createTerminal } from "./sections/terminalView";
 
@@ -11,6 +14,7 @@ export interface PanelContext {
   close(): void;
   teleport(target: BuildingId): void;
   quests: QuestEngine;
+  open(id: PanelId): void;
 }
 
 export interface PanelOptions {
@@ -75,15 +79,38 @@ const DEFS: Record<PanelId, PanelDef> = {
     title: "Quest log",
     variant: "parchment",
     render: (ctx) => {
-      const { element, focus } = createQuestLog(ctx.quests);
+      const { element, focus } = createQuestLog(ctx.quests, {
+        onCelebrate: () => ctx.open("celebration"),
+      });
       return { element, focus };
+    },
+  },
+  quiz: {
+    title: "Library: Match the stack",
+    variant: "parchment",
+    render: (ctx) => {
+      const { element, focus } = createQuiz((correct, rounds) =>
+        ctx.quests.emit({ type: "quiz_completed", correct, rounds }),
+      );
+      return { element, focus };
+    },
+  },
+  celebration: {
+    title: "Quest complete",
+    variant: "parchment",
+    render: (ctx) => {
+      ctx.quests.markCelebrated();
+      return createCelebration();
     },
   },
   terminal: {
     title: "Retro computer",
     variant: "terminal",
     render: (ctx) => {
-      const { element, input } = createTerminal((target) => ctx.teleport(target));
+      const { element, input } = createTerminal((target) => ctx.teleport(target), {
+        context: { achievements: () => achievementLines(ctx.quests) },
+        emit: (event) => ctx.quests.emit(event),
+      });
       return { element, focus: input };
     },
   },
@@ -122,6 +149,7 @@ export class PanelManager {
           this.handlers.teleport(target);
         },
         quests: this.handlers.quests,
+        open: (next) => this.open(next),
       },
       options,
     );

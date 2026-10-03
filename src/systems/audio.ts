@@ -1,10 +1,26 @@
-export type SfxKind = "open" | "close" | "talk" | "wish";
+export type SfxKind =
+  | "open"
+  | "close"
+  | "talk"
+  | "wish"
+  | "squash"
+  | "bite"
+  | "catch"
+  | "pickup"
+  | "quest"
+  | "complete";
 
 const NOTES: Record<SfxKind, readonly number[]> = {
   open: [523, 659],
   close: [659, 440],
   talk: [392],
   wish: [523, 659, 784],
+  squash: [330, 220],
+  bite: [880, 880],
+  catch: [523, 784, 1047],
+  pickup: [784, 1047],
+  quest: [659, 784],
+  complete: [523, 659, 784, 1047],
 };
 
 /** Tiny WebAudio blips. Silent until the visitor opts in; the AudioContext is created lazily. */

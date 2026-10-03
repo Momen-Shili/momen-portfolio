@@ -1,10 +1,14 @@
 import Phaser from "phaser";
 import type { BuildingId } from "../content/buildings";
+import { BugHuntController } from "../game/bugHuntController";
 import type { GameContext } from "../game/context";
 import { findInteraction, type Zone } from "../systems/interaction";
+import { funFactLine } from "../systems/quests/helpers";
+import { IdleTracker } from "../systems/quests/minigames/idle";
 import { prefersReducedMotion } from "../ui/dom";
 import type { Facing, MapDef, NpcDef } from "../world/mapTypes";
 import { getMap } from "../world/maps";
+import { PLAZA_PX } from "../world/townMap";
 import { T, TILE } from "../world/tiles";
 
 const PLAYER_SPEED = 74;
@@ -29,6 +33,10 @@ export class WorldScene extends Phaser.Scene {
   /** Collectible sprites by item id, removed when the player picks them up. */
   private readonly itemSprites = new Map<string, Phaser.GameObjects.Sprite>();
   private zones: Zone[] = [];
+  private bugHunt: BugHuntController | null = null;
+  private readonly watch = new IdleTracker();
+  private hat: Phaser.GameObjects.Image | null = null;
+  private trailMs = 0;
   private readonly reduced = prefersReducedMotion();
 
   constructor(private readonly ctx: GameContext) {
@@ -42,6 +50,10 @@ export class WorldScene extends Phaser.Scene {
     this.transitioning = false;
     this.facing = "down";
     this.itemSprites.clear();
+    this.bugHunt = null;
+    this.hat = null;
+    this.trailMs = 0;
+    this.watch.reset();
   }
 
   create(): void {
@@ -53,9 +65,14 @@ export class WorldScene extends Phaser.Scene {
     this.buildColliders();
     this.setupCamera();
 
-    this.ctx.world = { teleport: (target) => this.teleport(target) };
+    this.ctx.world = {
+      teleport: (target) => this.teleport(target),
+      startBugHunt: () => this.startBugHunt(),
+    };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off("resize", this.applyCamera, this);
+      this.bugHunt?.destroy();
+      this.bugHunt = null;
       this.ctx.world = null;
     });
 
@@ -63,7 +80,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.firstRun) this.ctx.onWorldReady();
   }
 
-  update(): void {
+  update(_time: number, delta: number): void {
     if (this.transitioning) return;
     const body = this.player.body as Phaser.Physics.Arcade.Body;
 
@@ -81,6 +98,14 @@ export class WorldScene extends Phaser.Scene {
     const zone = findInteraction(body.center.x, body.center.y, this.zones);
     this.ctx.hud.setPrompt(zone ? zone.prompt : null);
     if (this.ctx.input.consumeAction() && zone) this.perform(zone);
+
+    if (this.bugHunt) {
+      this.bugHunt.update(delta, body.center.x, body.center.y);
+      if (!this.bugHunt.active) this.bugHunt = null;
+    }
+    const moving = axis.x !== 0 || axis.y !== 0;
+    this.updateNightWatch(delta, moving, body);
+    this.updateCosmetics(delta, moving);
   }
 
   // ---- building the world ----
@@ -201,6 +226,89 @@ export class WorldScene extends Phaser.Scene {
     cam.setBounds(mapW / 2 - boundsW / 2, mapH / 2 - boundsH / 2, boundsW, boundsH);
   };
 
+  // ---- side quests ----
+
+  private startBugHunt(): void {
+    if (this.mapDef.id !== "town") return;
+    this.bugHunt?.destroy();
+    const { cols, blocked } = this.mapDef;
+    const isBlocked = (x: number, y: number): boolean =>
+      blocked[Math.floor(y / TILE) * cols + Math.floor(x / TILE)] === true;
+    this.bugHunt = new BugHuntController(this, this.ctx, PLAZA_PX, isBlocked, this.reduced);
+  }
+
+  /** Standing still by the fountain for a while unlocks the Night watch quest (once). */
+  private updateNightWatch(delta: number, moving: boolean, body: Phaser.Physics.Arcade.Body): void {
+    if (this.ctx.quests.isDone("night-watch")) return;
+    const fountain = this.mapDef.zones.find((z) => z.id === "fountain");
+    const inZone = fountain
+      ? findInteraction(body.center.x, body.center.y, [fountain]) !== null
+      : false;
+    if (!this.watch.update(delta, { inZone, moving })) return;
+    this.sparkle(fountain);
+    const fact = funFactLine();
+    this.ctx.hud.showToast(
+      fact
+        ? `Stars twinkle over the fountain. Fun fact: ${fact}`
+        : "Stars twinkle over the fountain.",
+      4500,
+    );
+    this.ctx.sfx.play("complete");
+    this.ctx.quests.emit({ type: "idle_at", place: "fountain" });
+  }
+
+  /** A few slow, fading sparkles. Skipped for reduced motion; nothing flashes. */
+  private sparkle(zone: Zone | undefined): void {
+    if (this.reduced || !zone) return;
+    const cx = zone.x + zone.w / 2;
+    const cy = zone.y + zone.h / 2 - 16;
+    const tints = [0xfff3c0, 0x8fd0f5, 0xffb3c7, 0xb9f0c1];
+    for (let burst = 0; burst < 3; burst++) {
+      for (let i = 0; i < 10; i++) {
+        const angle = (i / 10) * Math.PI * 2;
+        const star = this.add
+          .image(cx, cy, "spark")
+          .setDepth(10_000)
+          .setTint(tints[(i + burst) % tints.length] ?? 0xffffff)
+          .setAlpha(0);
+        this.tweens.add({
+          targets: star,
+          x: cx + Math.cos(angle) * (22 + burst * 10),
+          y: cy + Math.sin(angle) * (22 + burst * 10) - 8,
+          alpha: { from: 0.9, to: 0 },
+          delay: burst * 500,
+          duration: 1400,
+          ease: "Sine.easeOut",
+          onComplete: () => star.destroy(),
+        });
+      }
+    }
+  }
+
+  /** Quest reward cosmetics: the straw fishing hat and the gem trail. */
+  private updateCosmetics(delta: number, moving: boolean): void {
+    const owned = this.ctx.quests.state.cosmetics;
+    if (owned.includes("fishing-hat")) {
+      this.hat ??= this.add.image(0, 0, "hat").setOrigin(0.5, 1);
+      this.hat.setPosition(this.player.x, this.player.y - 11).setDepth(this.player.y + 0.5);
+    }
+    if (!owned.includes("gem-trail") || this.reduced || !moving) return;
+    this.trailMs += delta;
+    if (this.trailMs < 130) return;
+    this.trailMs = 0;
+    const gem = this.add
+      .sprite(this.player.x, this.player.y - 3, "gem", Phaser.Math.Between(0, 2))
+      .setScale(0.5)
+      .setDepth(this.player.y - 1);
+    this.tweens.add({
+      targets: gem,
+      alpha: 0,
+      y: gem.y - 5,
+      duration: 900,
+      onComplete: () => gem.destroy(),
+    });
+  }
+
   // ---- collectibles ----
 
   /** Interaction zones minus the ones for items the player already owns. */
@@ -252,6 +360,10 @@ export class WorldScene extends Phaser.Scene {
       case "dialog":
         this.ctx.sfx.play("talk");
         this.ctx.director.talk(action.npc);
+        break;
+      case "fish":
+        this.ctx.sfx.play("open");
+        this.ctx.fishing.open();
         break;
       case "gem":
         this.ctx.sfx.play("wish");
