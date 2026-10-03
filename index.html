@@ -6,6 +6,7 @@
     <title>{{TITLE}}</title>
     <meta name="description" content="{{DESCRIPTION}}" />
     <meta name="theme-color" content="#1b1423" />
+    <meta name="color-scheme" content="light dark" />
     <link rel="canonical" href="{{SITE_URL}}" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -35,14 +36,20 @@
         var h = document.documentElement;
         h.classList.remove("no-js");
         h.classList.add("js");
+        try {
+          var t = localStorage.getItem("momen-portfolio:v1:theme");
+          if (t !== "light" && t !== "dark")
+            t = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          h.dataset.theme = t;
+        } catch (e) {}
         h.classList.add(/[?&]plain\b/.test(location.search) ? "mode-plain" : "mode-game");
       })();
     </script>
   </head>
   <body>
-    <header class="top-bar">
+    <div class="top-bar" role="navigation" aria-label="Display mode">
       <a id="mode-toggle" class="skip-link" href="?plain=1">Skip game: view as plain page</a>
-    </header>
+    </div>
     <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
 
     <div id="game-root" role="region" aria-label="Interactive town portfolio"></div>
@@ -59,9 +66,9 @@
       <div class="loading-track"><div id="loading-fill" class="loading-fill"></div></div>
     </div>
 
-    <main id="plain" class="plain">
+    <div id="plain" class="plain">
       <!--FALLBACK-->
-    </main>
+    </div>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

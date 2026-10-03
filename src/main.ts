@@ -1,4 +1,6 @@
 import "./styles/main.css";
+import "./styles/plain.css";
+import { enhancePlainPage } from "./plain/enhance";
 import type { RunningGame } from "./game/start";
 import { installCopyHandler } from "./ui/clipboard";
 import { createContactForm } from "./ui/contactForm";
@@ -111,6 +113,7 @@ toggle.addEventListener("click", (event) => {
 });
 
 installCopyHandler(announce);
+enhancePlainPage(plain, () => applyMode("game", true));
 
 const plainForm = document.getElementById("plain-contact-form");
 if (plainForm) {

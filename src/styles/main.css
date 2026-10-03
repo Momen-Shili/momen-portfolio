@@ -420,66 +420,6 @@ kbd {
   color: var(--ink-soft);
 }
 
-/* ---------- plain page ---------- */
-
-.plain {
-  max-width: 880px;
-  margin: 0 auto;
-  padding: 64px 20px 80px;
-  color: var(--ink);
-  background: var(--paper);
-  min-height: 100vh;
-}
-.plain section {
-  margin-top: 44px;
-}
-.plain h1 {
-  margin: 0;
-  font: 800 clamp(34px, 7vw, 52px) / 1.05 var(--mono);
-}
-.plain h2 {
-  padding-bottom: 6px;
-  margin: 0 0 16px;
-  font: 800 24px var(--mono);
-  border-bottom: 4px solid var(--wood-dark);
-}
-.plain h3 {
-  margin: 18px 0 8px;
-  font: 800 15px var(--mono);
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-.plain a {
-  color: #0b4aa8;
-}
-.plain-kicker {
-  margin: 0 0 6px;
-  font: 600 13px var(--mono);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--ink-soft);
-}
-.plain-title {
-  margin: 6px 0 0;
-  font-size: 18px;
-}
-.plain-short {
-  margin: 8px 0 0;
-  color: var(--ink-soft);
-}
-.plain-nav {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px 18px;
-  padding: 0;
-  margin: 18px 0 0;
-  list-style: none;
-  font-weight: 700;
-}
-.plain #plain-contact-form {
-  margin-top: 22px;
-}
-
 @media (max-width: 560px) {
   .skip-link {
     top: calc(6px + env(safe-area-inset-top));

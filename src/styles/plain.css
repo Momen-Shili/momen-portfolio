@@ -1,0 +1,638 @@
+/* The plain page. Everything works without JavaScript; the .js rules only add motion on top.
+   Colours are tokens so the light and dark themes are one set of variables each
+   (contrast is checked in tests/plainTheme.test.ts). */
+
+.plain {
+  --p-bg: #f6ecd4;
+  --p-bg-2: #ecdcb4;
+  --p-card: #fff8e4;
+  --p-ink: #2b2118;
+  --p-soft: #5a4631;
+  --p-line: #8f5f35;
+  --p-line-strong: #3e2813;
+  --p-link: #0b4aa8;
+  --p-accent: #ffd34e;
+  --p-accent-ink: #2b2118;
+  --p-bar: #2e8b57;
+  --p-bar-bg: #d8c9a3;
+  --p-sky-1: #bfe3ff;
+  --p-sky-2: #f6ecd4;
+  --p-hill-1: #7fb069;
+  --p-hill-2: #5f9150;
+  --p-cloud: #ffffff;
+  color-scheme: light;
+}
+:root[data-theme="dark"] .plain {
+  --p-bg: #1b1423;
+  --p-bg-2: #2a2036;
+  --p-card: #261c31;
+  --p-ink: #f1e8d6;
+  --p-soft: #c9bcd6;
+  --p-line: #6d5a86;
+  --p-line-strong: #b9a6d6;
+  --p-link: #8fc2ff;
+  --p-accent: #ffd34e;
+  --p-accent-ink: #2b2118;
+  --p-bar: #5fd38d;
+  --p-bar-bg: #3a2b4a;
+  --p-sky-1: #2c2547;
+  --p-sky-2: #1b1423;
+  --p-hill-1: #2f5a3a;
+  --p-hill-2: #234530;
+  --p-cloud: #4a3f66;
+  color-scheme: dark;
+}
+:root[data-theme="dark"].mode-plain,
+:root[data-theme="dark"].mode-plain body {
+  background: #1b1423;
+}
+
+.plain {
+  color: var(--p-ink);
+  background: var(--p-bg);
+  min-height: 100vh;
+  /* Remap the shared content-block tokens to the plain theme. */
+  --ink: var(--p-ink);
+  --ink-soft: var(--p-soft);
+  --paper-2: var(--p-bg-2);
+  --wood: var(--p-line);
+  --wood-dark: var(--p-line-strong);
+  scroll-padding-top: 72px;
+}
+.plain a {
+  color: var(--p-link);
+}
+.plain .timeline li,
+.plain .project,
+.plain .copy-btn {
+  background: var(--p-card);
+}
+.plain .copy-btn,
+.plain .field input,
+.plain .field textarea {
+  color: var(--p-ink);
+}
+.plain .field input,
+.plain .field textarea {
+  background: var(--p-card);
+}
+.plain .meter {
+  background: var(--p-bar-bg);
+}
+.plain .meter i {
+  background: var(--p-bar);
+}
+html {
+  scroll-behavior: smooth;
+}
+.plain h1,
+.plain h2 {
+  scroll-margin-top: 72px;
+}
+
+/* ----- header ----- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--p-bg);
+  border-bottom: 3px solid var(--p-line-strong);
+}
+.site-header-inner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 18px;
+  max-width: 1040px;
+  padding: 8px 20px;
+  margin: 0 auto;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font: 800 16px var(--mono);
+  color: var(--p-ink) !important;
+  text-decoration: none;
+}
+.brand-face {
+  image-rendering: pixelated;
+  border: 2px solid var(--p-line-strong);
+  background: #e4572e;
+}
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 4px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.site-nav a {
+  display: block;
+  padding: 6px 10px;
+  font: 700 14px var(--mono);
+  color: var(--p-ink);
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+}
+.site-nav a:hover {
+  border-bottom-color: var(--p-line);
+}
+.site-nav a[aria-current="true"] {
+  border-bottom-color: var(--p-line-strong);
+  background: var(--p-bg-2);
+}
+.site-actions {
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+.theme-toggle {
+  padding: 5px 10px;
+  font: 700 13px var(--mono);
+  color: var(--p-ink);
+  cursor: pointer;
+  background: var(--p-card);
+  border: 2px solid var(--p-line-strong);
+}
+
+.btn {
+  display: inline-block;
+  padding: 10px 20px;
+  font: 800 16px var(--mono);
+  text-decoration: none;
+  border: 3px solid var(--p-line-strong);
+  transition:
+    transform 0.12s steps(2),
+    box-shadow 0.12s steps(2);
+}
+.btn-play {
+  color: var(--p-accent-ink) !important;
+  background: var(--p-accent);
+  box-shadow: 3px 3px 0 var(--p-line-strong);
+}
+.btn-outline {
+  color: var(--p-ink) !important;
+  background: transparent;
+  box-shadow: 3px 3px 0 var(--p-line-strong);
+}
+.btn:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--p-line-strong);
+}
+.btn:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--p-line-strong);
+}
+.btn-small {
+  padding: 5px 12px;
+  font-size: 13px;
+}
+
+/* ----- hero ----- */
+
+.hero {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(var(--p-sky-1), var(--p-sky-2));
+  border-bottom: 3px solid var(--p-line-strong);
+}
+.hero-sky {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.cloud {
+  position: absolute;
+  width: 96px;
+  height: 28px;
+  background: var(--p-cloud);
+  box-shadow:
+    24px -12px 0 0 var(--p-cloud),
+    52px -4px 0 0 var(--p-cloud);
+  opacity: 0.9;
+}
+.cloud.c1 {
+  top: 24%;
+  left: -120px;
+  animation: drift 70s linear infinite;
+}
+.cloud.c2 {
+  top: 52%;
+  left: -160px;
+  animation: drift 95s linear infinite -40s;
+  transform: scale(0.7);
+}
+.cloud.c3 {
+  top: 12%;
+  left: -100px;
+  animation: drift 120s linear infinite -80s;
+  transform: scale(1.2);
+}
+@keyframes drift {
+  to {
+    translate: calc(100vw + 400px) 0;
+  }
+}
+.hill {
+  position: absolute;
+  bottom: -40px;
+  width: 70%;
+  height: 90px;
+  border-radius: 50% 50% 0 0;
+  translate: 0 var(--par, 0px);
+}
+.hill.h1 {
+  left: -10%;
+  background: var(--p-hill-1);
+}
+.hill.h2 {
+  right: -15%;
+  height: 70px;
+  background: var(--p-hill-2);
+}
+.hero-inner {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px 36px;
+  max-width: 1040px;
+  padding: 56px 20px 72px;
+  margin: 0 auto;
+}
+.hero-portrait {
+  position: relative;
+  flex: none;
+  width: 160px;
+  height: 160px;
+  animation: idle 2.4s steps(2) infinite;
+}
+@keyframes idle {
+  50% {
+    transform: translateY(-4px);
+  }
+}
+.portrait {
+  display: block;
+  width: 160px;
+  height: 160px;
+  image-rendering: pixelated;
+  background: #e4572e;
+  border: 4px solid var(--p-line-strong);
+}
+/* A blink: the eye line flashes for a moment every few seconds. */
+.blink {
+  position: absolute;
+  top: 38%;
+  left: 20%;
+  width: 60%;
+  height: 8%;
+  background: #6b4226;
+  opacity: 0;
+  animation: blink 5s steps(1) infinite;
+}
+@keyframes blink {
+  0%,
+  94%,
+  100% {
+    opacity: 0;
+  }
+  96%,
+  98% {
+    opacity: 0.85;
+  }
+}
+.hero-text {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+.eyebrow {
+  margin: 0 0 6px;
+  font: 700 13px var(--mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--p-soft);
+}
+.plain h1 {
+  margin: 0;
+  font: 800 clamp(34px, 8vw, 58px) / 1.05 var(--mono);
+  overflow-wrap: anywhere;
+}
+.role {
+  margin: 8px 0 0;
+  font: 700 18px var(--mono);
+  color: var(--p-soft);
+}
+.tagline {
+  min-height: 3.2em;
+  margin: 14px 0 20px;
+  font-size: 18px;
+  max-width: 34em;
+}
+.tw-live {
+  display: none;
+}
+.js .tagline.typing .tw-live {
+  display: inline;
+}
+.js .tagline.typing .tw-live::after {
+  content: "";
+  display: inline-block;
+  width: 0.5em;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--p-ink);
+  animation: caret 0.8s steps(1) infinite;
+}
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+/* ----- sections ----- */
+
+.plain #content {
+  display: block;
+}
+.plain .section {
+  max-width: 880px;
+  padding: 0 20px;
+  margin: 56px auto 0;
+}
+.plain h2 {
+  padding-bottom: 6px;
+  margin: 0 0 16px;
+  font: 800 26px var(--mono);
+  border-bottom: 4px solid var(--p-line-strong);
+}
+.plain h3 {
+  margin: 18px 0 8px;
+  font: 800 15px var(--mono);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.lead {
+  margin: 0 0 12px;
+  font-size: 18px;
+}
+
+/* Scroll reveal: visible by default; with JS they start low and fade in. */
+.js .reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.5s ease,
+    transform 0.5s ease;
+}
+.js .reveal.in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Timeline: a rail with a dot per entry. */
+.plain .timeline {
+  position: relative;
+  gap: 14px;
+  padding-left: 24px;
+}
+.plain .timeline::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  bottom: 6px;
+  left: 6px;
+  width: 4px;
+  background: var(--p-line);
+  transform-origin: top;
+}
+.plain .timeline li {
+  position: relative;
+}
+.plain .timeline li::before {
+  content: "";
+  position: absolute;
+  top: 14px;
+  left: -24px;
+  width: 16px;
+  height: 16px;
+  background: var(--p-accent);
+  border: 3px solid var(--p-line-strong);
+}
+.js .reveal .timeline::before {
+  transform: scaleY(0);
+  transition: transform 0.9s steps(12);
+}
+.js .reveal.in .timeline::before {
+  transform: scaleY(1);
+}
+.js .reveal .timeline li {
+  opacity: 0;
+  transform: translateX(-12px);
+  transition:
+    opacity 0.4s ease,
+    transform 0.4s ease;
+}
+.js .reveal.in .timeline li {
+  opacity: 1;
+  transform: none;
+}
+.js .reveal.in .timeline li:nth-child(2) {
+  transition-delay: 0.15s;
+}
+.js .reveal.in .timeline li:nth-child(3) {
+  transition-delay: 0.3s;
+}
+.js .reveal.in .timeline li:nth-child(n + 4) {
+  transition-delay: 0.45s;
+}
+
+/* Project cards. */
+.plain .project-list {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+}
+.plain .project {
+  border-color: var(--p-line);
+  transition:
+    transform 0.15s steps(3),
+    box-shadow 0.15s steps(3);
+}
+.plain .project:hover,
+.plain .project:focus-within {
+  transform: translate(-2px, -2px);
+  box-shadow: 4px 4px 0 var(--p-line-strong);
+}
+.plain .project-image {
+  height: auto;
+}
+
+/* Skill bars fill when they scroll into view. */
+.js .reveal .meter i {
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.8s steps(10);
+}
+.js .reveal.in .meter i {
+  transform: scaleX(1);
+}
+
+/* ----- footer ----- */
+
+.site-footer {
+  margin-top: 72px;
+  color: var(--p-ink);
+  background: var(--p-bg-2);
+  border-top: 3px solid var(--p-line-strong);
+}
+.walker-lane {
+  position: relative;
+  height: 56px;
+  overflow: hidden;
+  background: linear-gradient(transparent 70%, var(--p-hill-1) 70%);
+}
+.walker {
+  position: absolute;
+  bottom: 4px;
+  left: 0;
+  width: 48px;
+  height: 48px;
+  background: url("/art/walker.png") 0 0 / 144px 48px no-repeat;
+  image-rendering: pixelated;
+  animation:
+    walk-frames 0.6s steps(3) infinite,
+    walk-across 24s linear infinite;
+}
+@keyframes walk-frames {
+  to {
+    background-position: -144px 0;
+  }
+}
+@keyframes walk-across {
+  from {
+    translate: -60px 0;
+  }
+  to {
+    translate: calc(100vw + 20px) 0;
+  }
+}
+.footer-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 20px;
+  max-width: 1040px;
+  padding: 16px 20px calc(24px + env(safe-area-inset-bottom));
+  margin: 0 auto;
+}
+.footer-row p {
+  margin: 0;
+}
+
+.to-top {
+  position: fixed;
+  right: calc(16px + env(safe-area-inset-right));
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font: 800 20px var(--mono);
+  color: var(--p-accent-ink) !important;
+  text-decoration: none;
+  background: var(--p-accent);
+  border: 3px solid var(--p-line-strong);
+  box-shadow: 3px 3px 0 var(--p-line-strong);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+}
+.to-top.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+.mode-game .to-top {
+  display: none;
+}
+
+/* In plain mode the header carries "Play the game", so the fixed toggle is only for keyboard focus. */
+.mode-plain .skip-link:not(:focus) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  border: 0;
+}
+
+@media (max-width: 640px) {
+  .site-header-inner {
+    padding: 6px 12px;
+  }
+  .site-nav a {
+    padding: 6px 7px;
+    font-size: 13px;
+  }
+  .hero-inner {
+    padding: 36px 16px 64px;
+  }
+  .hero-portrait,
+  .portrait {
+    width: 112px;
+    height: 112px;
+  }
+  .plain .section {
+    padding: 0 16px;
+  }
+  .brand-name {
+    display: none;
+  }
+}
+
+/* Reduced motion (OS or the in-game "Reduce effects" setting): everything is static and visible. */
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .js .reveal,
+  .js .reveal .timeline li,
+  .js .reveal .meter i,
+  .js .reveal .timeline::before {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .walker {
+    animation: none !important;
+    left: 50%;
+  }
+}
+.reduce-effects .js .reveal,
+.reduce-effects .reveal,
+.reduce-effects .reveal .timeline li,
+.reduce-effects .reveal .meter i,
+.reduce-effects .reveal .timeline::before {
+  opacity: 1 !important;
+  transform: none !important;
+}
+.reduce-effects .walker {
+  left: 50%;
+}
+.reduce-effects html,
+html.reduce-effects {
+  scroll-behavior: auto;
+}
+
+.plain .btn-primary {
+  color: #2b2118;
+}
