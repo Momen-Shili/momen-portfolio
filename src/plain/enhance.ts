@@ -23,8 +23,14 @@ function osTheme(): Theme {
 
 export function applyTheme(theme: Theme): void {
   document.documentElement.dataset.theme = theme;
-  const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
-  if (meta) meta.content = theme === "dark" ? "#1b1423" : "#f6ecd4";
+}
+
+/** The browser bar colour: dark in the game, the chosen page theme on the plain page. */
+export function syncThemeColor(mode: "game" | "plain"): void {
+  const dark = mode === "game" || document.documentElement.dataset.theme === "dark";
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    meta.content = dark ? "#1b1423" : "#f6ecd4";
+  }
 }
 
 function saveTheme(theme: Theme): void {
@@ -50,6 +56,7 @@ function setupTheme(root: HTMLElement): void {
     const next: Theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
     applyTheme(next);
     saveTheme(next);
+    syncThemeColor("plain");
     sync();
   });
 }

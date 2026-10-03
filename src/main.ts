@@ -1,6 +1,6 @@
 import "./styles/main.css";
 import "./styles/plain.css";
-import { enhancePlainPage } from "./plain/enhance";
+import { enhancePlainPage, syncThemeColor } from "./plain/enhance";
 import type { RunningGame } from "./game/start";
 import { installCopyHandler } from "./ui/clipboard";
 import { createContactForm } from "./ui/contactForm";
@@ -93,6 +93,7 @@ function applyMode(mode: Mode, focus = false): void {
   toggle.textContent = mode === "game" ? "Skip game: view as plain page" : "Play the game instead";
   toggle.href = mode === "game" ? "?plain=1" : window.location.pathname;
   setUrl(mode);
+  syncThemeColor(mode);
 
   if (mode === "game") {
     void enterGame();
@@ -117,7 +118,7 @@ enhancePlainPage(plain, () => applyMode("game", true));
 
 const plainForm = document.getElementById("plain-contact-form");
 if (plainForm) {
-  const { form } = createContactForm();
+  const { form } = createContactForm("plain-page");
   plainForm.append(form);
 }
 

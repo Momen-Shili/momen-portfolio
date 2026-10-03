@@ -102,6 +102,11 @@ While redesigning the plain page, axe found a duplicate banner landmark, a float
 landmark and a yellow button with light text in the dark theme. All fixed; axe now reports zero
 violations in both themes, and a test checks theme contrast.
 
+### 12. Inline script blocked a strict CSP
+
+The early mode/theme script was inline, which a `script-src 'self'` policy would block. It now lives in
+`public/early.js`, so the CSP in `netlify.toml` needs no `unsafe-inline` for scripts.
+
 ## Checked and found fine
 
 - Console: zero errors and zero warnings on load, every panel, the dialog, fishing, map changes and
