@@ -561,3 +561,12 @@ kbd {
   margin: 10px 0 0;
   color: var(--ink-soft);
 }
+
+/* "Reduce effects" in the in-game settings mirrors the OS reduced-motion preference. */
+.reduce-effects *,
+.reduce-effects *::before,
+.reduce-effects *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}

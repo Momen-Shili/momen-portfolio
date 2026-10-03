@@ -91,8 +91,12 @@ export class Hud {
   }
 
   /** Small non-blocking message for quest progress. Several can stack; each fades on its own. */
-  showQuestToast(message: string, ms = 4200): void {
-    const item = el("p", { class: "quest-toast" }, message);
+  showQuestToast(message: string, ms = 4200, variant?: "badge"): void {
+    const item = el(
+      "p",
+      { class: variant === "badge" ? "quest-toast toast-badge" : "quest-toast" },
+      message,
+    );
     this.questToasts.append(item);
     while (this.questToasts.children.length > 3) this.questToasts.firstElementChild?.remove();
     const timer = window.setTimeout(() => {

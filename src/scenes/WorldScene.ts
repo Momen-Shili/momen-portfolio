@@ -1,6 +1,9 @@
 import Phaser from "phaser";
 import type { BuildingId } from "../content/buildings";
 import { DustMotes } from "../game/ambience";
+import { AmbientEffects } from "../game/effects/ambient";
+import { InteractionHints } from "../game/effects/hints";
+import { NpcActor } from "../game/effects/npcActor";
 import { BugHuntController } from "../game/bugHuntController";
 import type { GameContext } from "../game/context";
 import { findInteraction, type Zone } from "../systems/interaction";
@@ -24,6 +27,8 @@ interface WorldData {
   attract?: boolean;
   /** Building whose door was just used to come out (the door closes behind the player). */
   arrive?: string;
+  /** Place the player here instead of at a named spawn (used when a map is rebuilt in place). */
+  at?: { x: number; y: number };
 }
 
 /** One scene renders every map (town, house interior); changing maps restarts it with new data. */
@@ -45,7 +50,12 @@ export class WorldScene extends Phaser.Scene {
   private stopQuestWatch: (() => void) | null = null;
   private motes: DustMotes | null = null;
   private arriveFrom: string | null = null;
-  private readonly reduced = prefersReducedMotion();
+  private reduced = prefersReducedMotion();
+  private ambient: AmbientEffects | null = null;
+  private hints: InteractionHints | null = null;
+  private actors: NpcActor[] = [];
+  private breath = 0;
+  private startAt: { x: number; y: number } | null = null;
 
   constructor(private readonly ctx: GameContext) {
     super("World");
@@ -56,6 +66,12 @@ export class WorldScene extends Phaser.Scene {
     this.spawnName = data.spawn ?? "start";
     this.firstRun = data.attract === true;
     this.arriveFrom = data.arrive ?? null;
+    this.startAt = data.at ?? null;
+    this.reduced = prefersReducedMotion();
+    this.ambient = null;
+    this.hints = null;
+    this.actors = [];
+    this.breath = 0;
     this.motes = null;
     this.transitioning = false;
     this.facing = "down";
@@ -69,9 +85,11 @@ export class WorldScene extends Phaser.Scene {
 
   create(): void {
     this.buildGround();
+    this.buildEffects();
     this.buildProps();
     this.refreshZones();
     this.buildNpcs();
+    this.hints = new InteractionHints(this, this.zones, this.reduced);
     this.buildPlayer();
     this.buildColliders();
     this.setupCamera();
@@ -82,6 +100,7 @@ export class WorldScene extends Phaser.Scene {
     this.ctx.world = {
       teleport: (target) => this.teleport(target),
       startBugHunt: () => this.startBugHunt(),
+      restartHere: () => this.restartHere(),
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off("resize", this.applyCamera, this);
@@ -123,6 +142,10 @@ export class WorldScene extends Phaser.Scene {
     }
     const moving = axis.x !== 0 || axis.y !== 0;
     this.motes?.update(delta);
+    this.hints?.update(delta, this.player, zone !== null);
+    for (const actor of this.actors) actor.update(delta, this.player.x, this.player.y);
+    this.ambient?.update(delta, { x: this.player.x, y: this.player.y, moving });
+    this.updateBreathing(delta, moving);
     this.updateFootsteps(delta, moving);
     this.updateNightWatch(delta, moving, body);
     this.updateCosmetics(delta, moving);
@@ -167,6 +190,9 @@ export class WorldScene extends Phaser.Scene {
     sprite.setOrigin(p.originX ?? 0.5, 1);
     sprite.setDepth(p.flat ? -50 : p.y);
     if (p.anim && !this.reduced) sprite.play(`loop-${p.texture}`);
+    if (p.texture === "tree") this.ambient?.registerSway(sprite, 0.028, 1.1);
+    else if (p.texture === "bush") this.ambient?.registerSway(sprite, 0.045, 1.5);
+    else if (p.texture === "board") this.ambient?.registerSway(sprite, 0.012, 0.9);
   }
 
   private buildNpcs(): void {
@@ -179,22 +205,19 @@ export class WorldScene extends Phaser.Scene {
       .setOrigin(0.5, 1)
       .setDepth(npc.y)
       .setFlipX(npc.facing === "right");
-    if (!this.reduced) {
-      this.tweens.add({
-        targets: sprite,
-        y: npc.y - 1,
-        duration: 900 + (npc.x % 7) * 40,
-        yoyo: true,
-        repeat: -1,
-        ease: "Sine.easeInOut",
-      });
-    }
+    this.actors.push(
+      new NpcActor(sprite, npc, this, {
+        wander: npc.id === "guide" || npc.id === "reader",
+        calm: this.reduced,
+      }),
+    );
   }
 
   private buildPlayer(): void {
     const spawn = this.mapDef.spawns[this.spawnName] ?? Object.values(this.mapDef.spawns)[0];
     if (!spawn) throw new Error(`Map ${this.mapDef.id} has no spawn points`);
-    this.player = this.physics.add.sprite(spawn.x, spawn.y, "player", 0);
+    const at = this.startAt ?? spawn;
+    this.player = this.physics.add.sprite(at.x, at.y, "player", 0);
     this.player.setOrigin(0.5, 1);
     const body = this.player.body as Phaser.Physics.Arcade.Body;
     body.setSize(BODY_W, BODY_H);
@@ -258,6 +281,7 @@ export class WorldScene extends Phaser.Scene {
     if (this.stepDistance < 18) return;
     this.stepDistance = 0;
     this.ctx.audio.play("step");
+    this.ambient?.footstep(this.player.x, this.player.y);
   }
 
   // ---- side quests ----
@@ -324,7 +348,9 @@ export class WorldScene extends Phaser.Scene {
     const owned = this.ctx.quests.state.cosmetics;
     if (owned.includes("fishing-hat")) {
       this.hat ??= this.add.image(0, 0, "hat").setOrigin(0.5, 1);
-      this.hat.setPosition(this.player.x, this.player.y - 11).setDepth(this.player.y + 0.5);
+      this.hat
+        .setPosition(this.player.x, this.player.y - 11 * this.player.scaleY)
+        .setDepth(this.player.y + 0.5);
     }
     if (!owned.includes("gem-trail") || this.reduced || !moving) return;
     this.trailMs += delta;
@@ -351,6 +377,49 @@ export class WorldScene extends Phaser.Scene {
     }
     for (const p of this.mapDef.props) if (p.item) this.addProp(p);
     this.refreshCollectibles();
+  }
+
+  // ---- feel ----
+
+  /** Effects pooled for the town; interiors have dust motes instead. */
+  private buildEffects(): void {
+    const tint = this.ctx.dayTint;
+    tint.style.background = "#ffffff";
+    if (this.reduced || this.mapDef.id !== "town") return;
+    this.ambient = new AmbientEffects(this, this.mapDef, tint, this.ctx.clock);
+  }
+
+  /** A small squash-and-stretch hop when the player interacts with something. */
+  private bounce(): void {
+    if (this.reduced) return;
+    this.tweens.add({
+      targets: this.player,
+      scaleX: { from: 1.1, to: 1 },
+      scaleY: { from: 0.86, to: 1 },
+      duration: 180,
+      ease: "Back.easeOut",
+    });
+  }
+
+  /** Idle breathing: a barely visible stretch while standing still. */
+  private updateBreathing(delta: number, moving: boolean): void {
+    if (this.reduced) return;
+    this.breath += delta;
+    if (moving || this.player.scaleX !== 1) {
+      if (moving) this.player.setScale(1, 1);
+      return;
+    }
+    this.player.setScale(1, 1 + 0.02 * Math.sin(this.breath / 380));
+  }
+
+  /** Rebuilds the current map where the player stands, so a changed effects setting applies fully. */
+  private restartHere(): void {
+    if (this.transitioning) return;
+    this.scene.restart({
+      map: this.mapDef.id,
+      spawn: this.spawnName,
+      at: { x: this.player.x, y: this.player.y },
+    });
   }
 
   // ---- doors and interiors ----
@@ -504,13 +573,26 @@ export class WorldScene extends Phaser.Scene {
   /** Interaction zones minus the ones for items the player already owns. */
   private refreshZones(): void {
     this.zones = this.mapDef.zones.filter((z) => !z.item || !this.ctx.quests.hasItem(z.item));
+    this.hints?.setZones(this.zones);
   }
 
   private refreshCollectibles(): void {
     for (const [item, sprite] of this.itemSprites) {
       if (!this.ctx.quests.hasItem(item)) continue;
-      sprite.destroy();
       this.itemSprites.delete(item);
+      if (this.reduced) sprite.destroy();
+      else {
+        // Collected items pop: swell, brighten and fade.
+        this.tweens.add({
+          targets: sprite,
+          scale: 2.2,
+          alpha: 0,
+          y: sprite.y - 8,
+          duration: 280,
+          ease: "Quad.easeOut",
+          onComplete: () => sprite.destroy(),
+        });
+      }
     }
     this.refreshZones();
     this.ctx.hud.setPrompt(null);
@@ -538,6 +620,7 @@ export class WorldScene extends Phaser.Scene {
 
   private perform(zone: Zone): void {
     const { action } = zone;
+    if (action.type !== "enter" && action.type !== "exit") this.bounce();
     switch (action.type) {
       case "panel":
         this.ctx.audio.play("open");

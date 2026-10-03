@@ -11,7 +11,7 @@ import { createCelebration } from "./celebration";
 import { createQuestLog } from "./questLog";
 import { createQuiz } from "./quizPanel";
 import { createSettings } from "./settingsPanel";
-import { el, focusableIn, nextId } from "./dom";
+import { el, focusableIn, nextId, prefersReducedMotion } from "./dom";
 import { createTerminal } from "./sections/terminalView";
 
 export interface PanelContext {
@@ -147,6 +147,7 @@ const DEFS: Record<PanelId, PanelDef> = {
 export class PanelManager {
   private overlay: HTMLElement | null = null;
   private returnFocus: HTMLElement | null = null;
+  private readonly closedListeners = new Set<() => void>();
 
   constructor(
     private readonly root: HTMLElement,
@@ -158,12 +159,20 @@ export class PanelManager {
     },
   ) {}
 
+  /** Runs after any panel closes (for work that must wait until the player is free again). */
+  onClosed(listener: () => void): () => void {
+    this.closedListeners.add(listener);
+    return () => this.closedListeners.delete(listener);
+  }
+
   get isOpen(): boolean {
     return this.overlay !== null;
   }
 
   open(id: PanelId, options: PanelOptions = {}): void {
     if (this.overlay) this.close();
+    // A previous panel may still be fading out; remove it so two never overlap.
+    this.root.querySelectorAll(".panel-backdrop.is-closing").forEach((n) => n.remove());
     const def = DEFS[id];
     const title =
       id === "item" && options.itemId ? (itemDef(options.itemId)?.title ?? def.title) : def.title;
@@ -224,15 +233,22 @@ export class PanelManager {
 
   close(): void {
     if (!this.overlay) return;
-    this.overlay.remove();
+    const closing = this.overlay;
     this.overlay = null;
+    if (prefersReducedMotion()) closing.remove();
+    else {
+      closing.classList.add("is-closing");
+      window.setTimeout(() => closing.remove(), 130);
+    }
     this.handlers.onChange(false);
+    for (const listener of this.closedListeners) listener();
     const target = this.returnFocus;
     this.returnFocus = null;
     if (target && document.contains(target)) target.focus({ preventScroll: true });
   }
 
   destroy(): void {
+    this.root.querySelectorAll(".panel-backdrop").forEach((n) => n.remove());
     this.overlay?.remove();
     this.overlay = null;
   }

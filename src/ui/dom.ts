@@ -1,3 +1,5 @@
+import { effectsReduced, getReduceEffectsSetting } from "../systems/effectsSettings";
+
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   attrs: Record<string, string> = {},
@@ -34,8 +36,13 @@ export function focusableIn(root: HTMLElement): HTMLElement[] {
   );
 }
 
-export function prefersReducedMotion(): boolean {
+export function osPrefersReducedMotion(): boolean {
   return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** True when the visitor asked for calmer visuals: the OS preference or the in-game setting. */
+export function prefersReducedMotion(): boolean {
+  return effectsReduced(osPrefersReducedMotion(), getReduceEffectsSetting());
 }
 
 export function isTouchDevice(): boolean {

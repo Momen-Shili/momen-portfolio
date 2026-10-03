@@ -13,6 +13,8 @@ export interface WorldApi {
   teleport(target: BuildingId): void;
   /** Starts (or restarts) the plaza bug hunt. Does nothing outside the town. */
   startBugHunt(): void;
+  /** Rebuilds the current map in place (used when the effects setting changes). */
+  restartHere(): void;
 }
 
 /** Everything the scenes need from the DOM/UI side, wired up in start.ts. */
@@ -25,6 +27,10 @@ export interface GameContext {
   quests: QuestEngine;
   director: QuestDirector;
   fishing: FishingCard;
+  /** Full-screen multiply layer that tints the town toward evening (DOM, so it never touches the HUD). */
+  dayTint: HTMLElement;
+  /** Milliseconds since the game started; drives the day and evening cycle across map changes. */
+  clock(): number;
   minigameHud: MinigameHud;
   /** True while the title screen, a panel or a dialog is open. */
   isBlocked(): boolean;

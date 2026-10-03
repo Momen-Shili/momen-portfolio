@@ -15,6 +15,7 @@ import {
   SMITH_PALETTE,
   drawCharacterSheet,
 } from "../world/art/characters";
+import * as effects from "../world/art/effects";
 import * as furniture from "../world/art/furniture";
 import * as props from "../world/art/props";
 import { drawTileset } from "../world/art/tiles";
@@ -81,6 +82,20 @@ export const ASSETS: readonly AssetSpec[] = [
   { key: "clock", frame: { width: 18, height: 18 }, draw: furniture.drawClock },
   { key: "lamp-flicker", frame: { width: 12, height: 28 }, draw: furniture.drawLampFlicker },
   { key: "mote", draw: furniture.drawMote },
+  { key: "cloud", frame: { width: 64, height: 30 }, draw: effects.drawClouds },
+  { key: "cloudshadow", draw: effects.drawCloudShadow },
+  { key: "bird", frame: { width: 14, height: 8 }, draw: effects.drawBird },
+  { key: "butterfly", frame: { width: 8, height: 8 }, draw: effects.drawButterfly },
+  { key: "leaf", draw: effects.drawLeaf },
+  { key: "droplet", draw: effects.drawDroplet },
+  { key: "ripple", draw: effects.drawRipple },
+  { key: "puff", draw: effects.drawPuff },
+  { key: "dust", draw: effects.drawDust },
+  { key: "glow", draw: effects.drawGlow },
+  { key: "tuft", draw: effects.drawTuft },
+  { key: "arrow", draw: effects.drawArrow },
+  { key: "exclaim", draw: effects.drawExclaim },
+  { key: "solid", draw: effects.drawSolid },
   { key: "crate", draw: furniture.drawCrate },
   { key: "bookshelf", draw: props.drawBookshelf },
   // Framed portrait supplied by Momen (art-source/portrait.png, baked to 22x26 by hand).
