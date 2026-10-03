@@ -534,3 +534,30 @@ kbd {
   background: #ffd34e;
   box-shadow: 3px 3px 0 var(--wood-dark);
 }
+
+.status-details {
+  margin-top: 14px;
+}
+.status-details summary {
+  font-weight: 700;
+  cursor: pointer;
+}
+.status-guide {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0 0;
+}
+.status-guide > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.status-guide dt,
+.status-guide dd {
+  margin: 0;
+}
+.item-note {
+  margin: 10px 0 0;
+  color: var(--ink-soft);
+}

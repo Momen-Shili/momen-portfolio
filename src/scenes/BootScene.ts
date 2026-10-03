@@ -81,6 +81,11 @@ export class BootScene extends Phaser.Scene {
       ["flag", "flag", [0, 1], 2.4],
       ["computer", "computer", [0, 1], 1.6],
       ["bug", "bug", [0, 1], 8],
+      ["forge", "forge", [0, 1], 3],
+      ["candle", "candle", [0, 1], 5],
+      ["conveyor", "conveyor", [0, 1], 6],
+      ["clock", "clock", [0, 1], 1],
+      ["lamp-flicker", "lamp-flicker", [0, 1], 2.5],
     ];
     for (const [key, texture, frames, rate] of loops) {
       this.anims.create({

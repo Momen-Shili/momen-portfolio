@@ -8,15 +8,22 @@ export type PanelId =
   | "quests"
   | "quiz"
   | "celebration"
-  | "settings";
+  | "settings"
+  | "item";
 
 export type ZoneAction =
   | { type: "panel"; panel: PanelId }
-  | { type: "enter"; map: string; spawn: string }
-  | { type: "exit"; map: string; spawn: string }
+  /** Opens an interior item: a content panel or a short flavor dialog (see content/items.ts). */
+  | { type: "item"; item: string }
+  /** Copies a value to the clipboard (the stamp machine). */
+  | { type: "copy"; value: string; label: string }
+  /** Plays the climbing animation, then shows the item. */
+  | { type: "climb"; item: string }
+  | { type: "enter"; map: string; spawn: string; building: string }
+  | { type: "exit"; map: string; spawn: string; building: string }
   | { type: "dialog"; npc: string }
-  | { type: "fish" }
   | { type: "gem"; group: "Advanced" | "Proficient" | "Growing" }
+  | { type: "fish" }
   | { type: "wish" };
 
 /** Interaction area in world pixels. */

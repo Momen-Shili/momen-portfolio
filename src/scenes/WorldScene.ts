@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import type { BuildingId } from "../content/buildings";
+import { DustMotes } from "../game/ambience";
 import { BugHuntController } from "../game/bugHuntController";
 import type { GameContext } from "../game/context";
 import { findInteraction, type Zone } from "../systems/interaction";
@@ -9,7 +10,7 @@ import { clampFrame } from "../systems/quests/minigames/timing";
 import { prefersReducedMotion } from "../ui/dom";
 import type { Facing, MapDef, NpcDef, PropDef } from "../world/mapTypes";
 import { getMap } from "../world/maps";
-import { PLAZA_PX } from "../world/townMap";
+import { BUILDING_PLACEMENTS, PLAZA_PX } from "../world/townMap";
 import { T, TILE } from "../world/tiles";
 
 const PLAYER_SPEED = 74;
@@ -21,6 +22,8 @@ interface WorldData {
   map?: string;
   spawn?: string;
   attract?: boolean;
+  /** Building whose door was just used to come out (the door closes behind the player). */
+  arrive?: string;
 }
 
 /** One scene renders every map (town, house interior); changing maps restarts it with new data. */
@@ -40,6 +43,8 @@ export class WorldScene extends Phaser.Scene {
   private trailMs = 0;
   private stepDistance = 0;
   private stopQuestWatch: (() => void) | null = null;
+  private motes: DustMotes | null = null;
+  private arriveFrom: string | null = null;
   private readonly reduced = prefersReducedMotion();
 
   constructor(private readonly ctx: GameContext) {
@@ -50,6 +55,8 @@ export class WorldScene extends Phaser.Scene {
     this.mapDef = getMap(data.map ?? "town");
     this.spawnName = data.spawn ?? "start";
     this.firstRun = data.attract === true;
+    this.arriveFrom = data.arrive ?? null;
+    this.motes = null;
     this.transitioning = false;
     this.facing = "down";
     this.itemSprites.clear();
@@ -70,7 +77,8 @@ export class WorldScene extends Phaser.Scene {
     this.setupCamera();
 
     this.stopQuestWatch = this.ctx.quests.subscribe(() => this.syncQuestVisuals());
-    this.ctx.audio.setScene(this.mapDef.id === "house" ? "interior" : "town");
+    this.ctx.audio.setScene(this.mapDef.id === "town" ? "town" : "interior");
+    this.buildAmbience();
     this.ctx.world = {
       teleport: (target) => this.teleport(target),
       startBugHunt: () => this.startBugHunt(),
@@ -85,6 +93,7 @@ export class WorldScene extends Phaser.Scene {
     });
 
     if (!this.reduced && !this.firstRun) this.cameras.main.fadeIn(220, 0, 0, 0);
+    if (this.arriveFrom) this.playArrival(this.arriveFrom);
     if (this.firstRun) this.ctx.onWorldReady();
   }
 
@@ -113,6 +122,7 @@ export class WorldScene extends Phaser.Scene {
       if (!this.bugHunt.active) this.bugHunt = null;
     }
     const moving = axis.x !== 0 || axis.y !== 0;
+    this.motes?.update(delta);
     this.updateFootsteps(delta, moving);
     this.updateNightWatch(delta, moving, body);
     this.updateCosmetics(delta, moving);
@@ -343,6 +353,152 @@ export class WorldScene extends Phaser.Scene {
     this.refreshCollectibles();
   }
 
+  // ---- doors and interiors ----
+
+  private doorOrigin(
+    building: string,
+  ): { x: number; y: number; centreX: number; bottom: number } | null {
+    const placement = BUILDING_PLACEMENTS.find((p) => p.id === building);
+    if (!placement) return null;
+    const x = placement.bx * TILE;
+    const y = placement.by * TILE;
+    return { x: x + 40, y: y + 50, centreX: x + 48, bottom: y + 80 };
+  }
+
+  /** The door opens, the player steps in and the screen fades to the interior. */
+  private enterBuilding(building: string, map: string, spawn: string): void {
+    const door = this.doorOrigin(building);
+    if (this.transitioning) return;
+    if (!door || this.reduced) {
+      this.changeMap(map, spawn);
+      return;
+    }
+    this.transitioning = true;
+    this.ctx.hud.setPrompt(null);
+    this.ctx.audio.play("open");
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    body.enable = false;
+    this.facing = "up";
+    this.setIdle();
+    const sprite = this.add
+      .sprite(door.x, door.y, "door", 0)
+      .setOrigin(0, 0)
+      .setDepth(door.bottom + 2);
+    this.time.delayedCall(140, () => sprite.setFrame(1));
+    this.tweens.add({
+      targets: this.player,
+      x: door.centreX,
+      duration: 260,
+      onComplete: () => {
+        this.player.anims.play("walk-up", true);
+        this.tweens.add({
+          targets: this.player,
+          y: door.bottom - 6,
+          alpha: 0,
+          duration: 380,
+          onComplete: () => {
+            this.cameras.main.fadeOut(150, 0, 0, 0);
+            this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+              this.scene.restart({ map, spawn });
+            });
+          },
+        });
+      },
+    });
+  }
+
+  /** Arriving outside: the door is open and swings shut as the player steps out of it. */
+  private playArrival(building: string): void {
+    const door = this.doorOrigin(building);
+    if (!door || this.reduced) return;
+    this.transitioning = true;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    const endY = this.player.y;
+    body.enable = false;
+    this.player.setPosition(door.centreX, door.bottom - 8).setAlpha(0);
+    this.facing = "down";
+    this.player.anims.play("walk-down", true);
+    const sprite = this.add
+      .sprite(door.x, door.y, "door", 1)
+      .setOrigin(0, 0)
+      .setDepth(door.bottom + 2);
+    this.tweens.add({
+      targets: this.player,
+      x: door.centreX,
+      y: endY,
+      alpha: 1,
+      duration: 420,
+      onComplete: () => {
+        body.reset(door.centreX, endY);
+        body.enable = true;
+        this.setIdle();
+        sprite.setFrame(0);
+        this.time.delayedCall(120, () => sprite.destroy());
+        this.transitioning = false;
+      },
+    });
+  }
+
+  /** The library ladder: a short hop up and back down, then a line about the view. */
+  private climb(itemId: string): void {
+    if (this.transitioning) return;
+    this.ctx.audio.play("interact");
+    if (this.reduced) {
+      this.ctx.director.openItem(itemId);
+      return;
+    }
+    this.transitioning = true;
+    const body = this.player.body as Phaser.Physics.Arcade.Body;
+    body.setVelocity(0, 0);
+    this.facing = "up";
+    this.setIdle();
+    this.tweens.add({
+      targets: this.player,
+      y: this.player.y - 14,
+      duration: 380,
+      yoyo: true,
+      ease: "Sine.easeInOut",
+      onComplete: () => {
+        body.reset(this.player.x, this.player.y);
+        this.transitioning = false;
+        this.ctx.director.openItem(itemId);
+      },
+    });
+  }
+
+  private buildAmbience(): void {
+    if (this.reduced) return;
+    const count = this.mapDef.ambient?.motes ?? 0;
+    if (count > 0) {
+      const w = this.mapDef.cols * TILE;
+      const h = this.mapDef.rows * TILE;
+      this.motes = new DustMotes(
+        this,
+        count,
+        { x0: TILE, y0: 3 * TILE, x1: w - TILE, y1: h - 2 * TILE },
+        count,
+      );
+    }
+    // Parcels riding the post office conveyor belt.
+    const belt = this.mapDef.props.find((p) => p.texture === "conveyor");
+    if (belt) {
+      for (let i = 0; i < 3; i++) {
+        const parcel = this.add
+          .image(belt.x - 26, belt.y - 14, "parcel")
+          .setOrigin(0.5, 1)
+          .setDepth(belt.y + 1);
+        this.tweens.add({
+          targets: parcel,
+          x: belt.x + 26,
+          duration: 4200,
+          delay: i * 1400,
+          repeat: -1,
+        });
+      }
+    }
+  }
+
   // ---- collectibles ----
 
   /** Interaction zones minus the ones for items the player already owns. */
@@ -388,8 +544,21 @@ export class WorldScene extends Phaser.Scene {
         this.ctx.panels.open(action.panel);
         break;
       case "enter":
+        this.enterBuilding(action.building, action.map, action.spawn);
+        break;
       case "exit":
-        this.changeMap(action.map, action.spawn);
+        this.changeMap(action.map, action.spawn, action.building);
+        break;
+      case "item":
+        this.ctx.audio.play("interact");
+        this.ctx.director.openItem(action.item);
+        break;
+      case "copy":
+        this.ctx.audio.play("pickup");
+        this.ctx.director.copyValue(action.value, action.label);
+        break;
+      case "climb":
+        this.climb(action.item);
         break;
       case "dialog":
         this.ctx.audio.play("talk");
@@ -411,14 +580,14 @@ export class WorldScene extends Phaser.Scene {
     }
   }
 
-  private changeMap(map: string, spawn: string): void {
+  private changeMap(map: string, spawn: string, arrive?: string): void {
     if (this.transitioning) return;
     this.transitioning = true;
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
     this.ctx.hud.setPrompt(null);
     this.ctx.audio.play("open");
     const go = (): void => {
-      this.scene.restart({ map, spawn });
+      this.scene.restart({ map, spawn, arrive });
     };
     if (this.reduced) {
       go();

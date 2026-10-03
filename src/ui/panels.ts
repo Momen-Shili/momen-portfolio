@@ -4,7 +4,9 @@ import type { PanelId } from "../systems/interaction";
 import type { AudioEngine } from "../audio/engine";
 import type { QuestEngine } from "../systems/quests/engine";
 import { achievementLines } from "../systems/quests/helpers";
+import { itemDef } from "../content/items";
 import { createContactForm } from "./contactForm";
+import { itemHtml } from "./itemViews";
 import { createCelebration } from "./celebration";
 import { createQuestLog } from "./questLog";
 import { createQuiz } from "./quizPanel";
@@ -23,6 +25,8 @@ export interface PanelContext {
 export interface PanelOptions {
   /** Project name to feature when the Workshop panel opens (special delivery quest). */
   highlightProject?: string;
+  /** Interior item to show when the "item" panel opens (see content/items.ts). */
+  itemId?: string;
 }
 
 interface PanelView {
@@ -82,6 +86,15 @@ const DEFS: Record<PanelId, PanelDef> = {
       element.append(el("h3", {}, "Send a message"), form);
       return { element, focus: firstField };
     },
+  },
+  item: {
+    title: "Look closer",
+    variant: "parchment",
+    render: (_ctx, options) =>
+      htmlView(
+        (options.itemId ? itemHtml(options.itemId) : null) ??
+          "<p>There is nothing more to see here.</p>",
+      ),
   },
   quests: {
     title: "Quest log",
@@ -152,6 +165,8 @@ export class PanelManager {
   open(id: PanelId, options: PanelOptions = {}): void {
     if (this.overlay) this.close();
     const def = DEFS[id];
+    const title =
+      id === "item" && options.itemId ? (itemDef(options.itemId)?.title ?? def.title) : def.title;
     this.returnFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
@@ -184,7 +199,7 @@ export class PanelManager {
         "aria-labelledby": titleId,
         tabindex: "-1",
       },
-      el("header", { class: "panel-header" }, el("h2", { id: titleId }, def.title), closeBtn),
+      el("header", { class: "panel-header" }, el("h2", { id: titleId }, title), closeBtn),
       // Focusable so keyboard users can scroll long content even when it has no links or buttons.
       el(
         "div",

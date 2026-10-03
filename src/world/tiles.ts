@@ -17,6 +17,12 @@ export const T = {
   WALL_BASE: 12,
   DOOR_IN: 13,
   VOID: 14,
+  FLOOR_STONE: 15,
+  FLOOR_DARK: 16,
+  FLOOR_CHECK: 17,
+  WALL_BRICK: 18,
+  WALL_GREEN: 19,
+  WALL_BLUE: 20,
 } as const;
 
-export const TILE_COUNT = 15;
+export const TILE_COUNT = 21;

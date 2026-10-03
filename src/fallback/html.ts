@@ -14,6 +14,7 @@ import {
   type ProjectStatus,
   type Skill,
 } from "../content/portfolio.ts";
+import { STATUS_GUIDE, STATUS_ORDER } from "../content/statusGuide.ts";
 
 export function esc(value: string): string {
   return value
@@ -37,7 +38,7 @@ export function statusClass(status: ProjectStatus): string {
   return STATUS_CLASS[status];
 }
 
-function projectHtml(p: Project): string {
+export function projectHtml(p: Project): string {
   const image = p.image
     ? `<img class="project-image" src="${esc(p.image)}" alt="Screenshot of ${esc(p.name)}" loading="lazy">`
     : "";
@@ -56,17 +57,30 @@ function projectHtml(p: Project): string {
 </li>`;
 }
 
+/** A single project card, as used by the workshop benches. */
+export function projectCardHtml(p: Project): string {
+  return `<ul class="project-list">${projectHtml(p)}</ul>`;
+}
+
+/** The status labels with their general meaning (workshop chalkboard, Projects panel, plain page). */
+export function statusGuideHtml(): string {
+  return `<dl class="status-guide">${STATUS_ORDER.map(
+    (status) =>
+      `<div><dt><span class="badge ${statusClass(status)}">${esc(status)}</span></dt><dd>${esc(STATUS_GUIDE[status])}</dd></div>`,
+  ).join("")}</dl>`;
+}
+
 export function projectsHtml(): string {
-  return `<ul class="project-list">${PROJECTS.map(projectHtml).join("")}</ul>`;
+  return `<ul class="project-list">${PROJECTS.map(projectHtml).join("")}</ul>
+<details class="status-details"><summary>What the status labels mean</summary>${statusGuideHtml()}</details>`;
 }
 
 const SKILL_GROUPS: ReadonlyArray<Skill["label"]> = ["Advanced", "Proficient", "Growing"];
 
-export function skillsHtml(): string {
-  return SKILL_GROUPS.map((label) => {
-    const items = SKILLS.filter((s) => s.label === label);
-    if (items.length === 0) return "";
-    return `<section class="skill-group">
+export function skillGroupHtml(label: Skill["label"]): string {
+  const items = SKILLS.filter((s) => s.label === label);
+  if (items.length === 0) return "";
+  return `<section class="skill-group">
   <h3>${label}</h3>
   <ul class="skill-list">${items
     .map(
@@ -78,7 +92,18 @@ export function skillsHtml(): string {
     )
     .join("")}</ul>
 </section>`;
-  }).join("");
+}
+
+export function skillsHtml(): string {
+  return SKILL_GROUPS.map(skillGroupHtml).join("");
+}
+
+/** Location and languages, as shown on the house bookshelf and the library globe. */
+export function languagesHtml(): string {
+  return `<dl class="facts">
+  <div><dt>Location</dt><dd>${esc(PROFILE.location)}</dd></div>
+  <div><dt>Languages</dt><dd>${PROFILE.languages.map(esc).join(", ")}</dd></div>
+</dl>`;
 }
 
 export function experienceHtml(): string {
@@ -154,7 +179,7 @@ export function boardHtml(): string {
   <h3>Controls</h3>
   <ul class="board-list">
     <li><kbd>Arrows</kbd> or <kbd>W A S D</kbd> to walk. On a phone, use the joystick.</li>
-    <li><kbd>E</kbd> or <kbd>Space</kbd> to open doors and talk. On a phone, tap the action button.</li>
+    <li><kbd>E</kbd> or <kbd>Space</kbd> to go through doors, look closer at things and talk. On a phone, tap the action button.</li>
     <li><kbd>Esc</kbd> closes any panel.</li>
   </ul>
   <p class="board-note">Prefer a normal page? Use the "Skip game" link at the top-left.</p>

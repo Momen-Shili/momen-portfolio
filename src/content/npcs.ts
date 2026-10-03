@@ -53,7 +53,7 @@ export const NPCS: Record<string, NpcContent> = {
       ),
       first(
         "Workshop smith",
-        "Step through the door to see each project with its status and stack.",
+        "Every workbench holds one project, and the blueprint board opens the full list.",
       ),
     ],
   },
@@ -67,7 +67,7 @@ export const NPCS: Record<string, NpcContent> = {
       ),
       first(
         "Post office clerk",
-        "Step inside to send an email, or copy the email, LinkedIn and GitHub links.",
+        "The writing desk has the contact form, and the stamp machine copies the email address for you.",
       ),
     ],
   },

@@ -37,11 +37,9 @@ export const PLAZA_PX = {
   y1: (PLAZA.y1 + 1) * TILE,
 };
 
-/** Skill gems tucked into corners of the town, one per skill group. */
+/** The Advanced gem hides outside; the other two are inside the workshop and the library. */
 const GEM_SPOTS: ReadonlyArray<{ group: SkillGroup; tx: number; ty: number; frame: number }> = [
   { group: "Advanced", tx: 3, ty: 8, frame: 0 },
-  { group: "Proficient", tx: 44, ty: 22, frame: 1 },
-  { group: "Growing", tx: 44, ty: 3, frame: 2 },
 ];
 
 class Grid {
@@ -176,33 +174,18 @@ export function buildTown(): MapDef {
     spawns[`door-${id}`] = spawn;
 
     const base = { x: tilePx(bx + 1), y: tilePx(standRow), w: 4 * TILE, h: 28 };
-    const zoneById: Record<Placement["id"], Zone> = {
-      house: {
-        id,
-        ...base,
-        prompt: "Enter the house (About)",
-        action: { type: "enter", map: "house", spawn: "in" },
-      },
-      workshop: {
-        id,
-        ...base,
-        prompt: "Open the workshop (Projects)",
-        action: { type: "panel", panel: "projects" },
-      },
-      library: {
-        id,
-        ...base,
-        prompt: "Open the library (Skills)",
-        action: { type: "panel", panel: "skills" },
-      },
-      post: {
-        id,
-        ...base,
-        prompt: "Open the post office (Contact)",
-        action: { type: "panel", panel: "contact" },
-      },
+    const prompts: Record<Placement["id"], string> = {
+      house: "Enter the house (About)",
+      workshop: "Enter the workshop (Projects)",
+      library: "Enter the library (Skills)",
+      post: "Enter the post office (Contact)",
     };
-    zones.push(zoneById[id]);
+    zones.push({
+      id,
+      ...base,
+      prompt: prompts[id],
+      action: { type: "enter", map: id, spawn: "in", building: id },
+    });
   }
 
   // Fountain, notice board, lamps, benches.
@@ -304,9 +287,6 @@ export function buildTown(): MapDef {
   // NPCs.
   const npcs: NpcDef[] = [
     { id: "guide", texture: "npc-guide", x: tilePx(28) + 8, y: tilePx(19) + 14, facing: "left" },
-    { id: "smith", texture: "npc-smith", x: tilePx(40) + 8, y: tilePx(10) + 14, facing: "left" },
-    { id: "reader", texture: "npc-reader", x: tilePx(12) + 8, y: tilePx(31) + 14, facing: "left" },
-    { id: "clerk", texture: "npc-clerk", x: tilePx(33) + 8, y: tilePx(31) + 14, facing: "right" },
   ];
   for (const npc of npcs) {
     const tx = Math.floor(npc.x / TILE);

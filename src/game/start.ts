@@ -169,7 +169,7 @@ function buildGame(root: HTMLElement, tracker: GlobalListenerTracker): RunningGa
       syncUi();
     },
   });
-  const director = new QuestDirector(quests, { dialog, panels }, () => ctx.world);
+  const director = new QuestDirector(quests, { dialog, panels, hud }, () => ctx.world);
   Object.assign(ctx, { panels, dialog, hud, director, fishing, minigameHud });
 
   /** Opens the celebration once the player is free (not mid-dialog or mid-panel). */
