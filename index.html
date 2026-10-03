@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>{{TITLE}}</title>
+    <meta name="description" content="{{DESCRIPTION}}" />
+    <meta name="theme-color" content="#1b1423" />
+    <link rel="canonical" href="{{SITE_URL}}" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="{{NAME}}" />
+    <meta property="og:title" content="{{TITLE}}" />
+    <meta property="og:description" content="{{DESCRIPTION}}" />
+    <meta property="og:url" content="{{SITE_URL}}" />
+    <meta property="og:image" content="{{OG_IMAGE}}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Pixel-art town with the name {{NAME}}" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="{{TITLE}}" />
+    <meta name="twitter:description" content="{{DESCRIPTION}}" />
+    <meta name="twitter:image" content="{{OG_IMAGE}}" />
+    <script type="application/ld+json">
+      {{JSON_LD}}
+    </script>
+    <script>
+      // Runs before first paint: pick game or plain mode so there is no flash of the wrong one.
+      (function () {
+        var h = document.documentElement;
+        h.classList.remove("no-js");
+        h.classList.add("js");
+        h.classList.add(/[?&]plain\b/.test(location.search) ? "mode-plain" : "mode-game");
+      })();
+    </script>
+  </head>
+  <body>
+    <a id="mode-toggle" class="skip-link" href="?plain=1">Skip game: view as plain page</a>
+    <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
+
+    <div id="game-root" aria-label="Interactive town portfolio"></div>
+    <div
+      id="loading"
+      class="loading"
+      role="progressbar"
+      aria-label="Loading the game"
+      aria-valuemin="0"
+      aria-valuemax="100"
+      aria-valuenow="0"
+    >
+      <p class="loading-title">Loading the town…</p>
+      <div class="loading-track"><div id="loading-fill" class="loading-fill"></div></div>
+    </div>
+
+    <main id="plain" class="plain">
+      <!--FALLBACK-->
+    </main>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
