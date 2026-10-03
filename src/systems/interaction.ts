@@ -7,7 +7,8 @@ export type PanelId =
   | "terminal"
   | "quests"
   | "quiz"
-  | "celebration";
+  | "celebration"
+  | "settings";
 
 export type ZoneAction =
   | { type: "panel"; panel: PanelId }

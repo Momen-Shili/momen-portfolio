@@ -37,6 +37,7 @@ export class WorldScene extends Phaser.Scene {
   private readonly watch = new IdleTracker();
   private hat: Phaser.GameObjects.Image | null = null;
   private trailMs = 0;
+  private stepDistance = 0;
   private readonly reduced = prefersReducedMotion();
 
   constructor(private readonly ctx: GameContext) {
@@ -53,6 +54,7 @@ export class WorldScene extends Phaser.Scene {
     this.bugHunt = null;
     this.hat = null;
     this.trailMs = 0;
+    this.stepDistance = 0;
     this.watch.reset();
   }
 
@@ -65,13 +67,14 @@ export class WorldScene extends Phaser.Scene {
     this.buildColliders();
     this.setupCamera();
 
+    this.ctx.audio.setScene(this.mapDef.id === "house" ? "interior" : "town");
     this.ctx.world = {
       teleport: (target) => this.teleport(target),
       startBugHunt: () => this.startBugHunt(),
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off("resize", this.applyCamera, this);
-      this.bugHunt?.destroy();
+      this.bugHunt?.destroy(false);
       this.bugHunt = null;
       this.ctx.world = null;
     });
@@ -104,6 +107,7 @@ export class WorldScene extends Phaser.Scene {
       if (!this.bugHunt.active) this.bugHunt = null;
     }
     const moving = axis.x !== 0 || axis.y !== 0;
+    this.updateFootsteps(delta, moving);
     this.updateNightWatch(delta, moving, body);
     this.updateCosmetics(delta, moving);
   }
@@ -226,6 +230,18 @@ export class WorldScene extends Phaser.Scene {
     cam.setBounds(mapW / 2 - boundsW / 2, mapH / 2 - boundsH / 2, boundsW, boundsH);
   };
 
+  /** A soft step every ~18 pixels walked. */
+  private updateFootsteps(delta: number, moving: boolean): void {
+    if (!moving) {
+      this.stepDistance = 0;
+      return;
+    }
+    this.stepDistance += (PLAYER_SPEED * delta) / 1000;
+    if (this.stepDistance < 18) return;
+    this.stepDistance = 0;
+    this.ctx.audio.play("step");
+  }
+
   // ---- side quests ----
 
   private startBugHunt(): void {
@@ -253,7 +269,7 @@ export class WorldScene extends Phaser.Scene {
         : "Stars twinkle over the fountain.",
       4500,
     );
-    this.ctx.sfx.play("complete");
+    this.ctx.audio.play("complete");
     this.ctx.quests.emit({ type: "idle_at", place: "fountain" });
   }
 
@@ -350,7 +366,7 @@ export class WorldScene extends Phaser.Scene {
     const { action } = zone;
     switch (action.type) {
       case "panel":
-        this.ctx.sfx.play("open");
+        this.ctx.audio.play("open");
         this.ctx.panels.open(action.panel);
         break;
       case "enter":
@@ -358,20 +374,20 @@ export class WorldScene extends Phaser.Scene {
         this.changeMap(action.map, action.spawn);
         break;
       case "dialog":
-        this.ctx.sfx.play("talk");
+        this.ctx.audio.play("talk");
         this.ctx.director.talk(action.npc);
         break;
       case "fish":
-        this.ctx.sfx.play("open");
+        this.ctx.audio.play("open");
         this.ctx.fishing.open();
         break;
       case "gem":
-        this.ctx.sfx.play("wish");
+        this.ctx.audio.play("pickup");
         this.ctx.director.collectGem(action.group);
         this.refreshCollectibles();
         break;
       case "wish":
-        this.ctx.sfx.play("wish");
+        this.ctx.audio.play("wish");
         this.ctx.hud.showToast("Plink! You toss a coin into the fountain and make a wish.");
         break;
     }
@@ -382,7 +398,7 @@ export class WorldScene extends Phaser.Scene {
     this.transitioning = true;
     (this.player.body as Phaser.Physics.Arcade.Body).setVelocity(0, 0);
     this.ctx.hud.setPrompt(null);
-    this.ctx.sfx.play("open");
+    this.ctx.audio.play("open");
     const go = (): void => {
       this.scene.restart({ map, spawn });
     };

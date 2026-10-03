@@ -1,19 +1,21 @@
 import { PROFILE } from "../content/portfolio";
+import type { SoundChoice } from "../audio/settings";
 import { el, isTouchDevice } from "./dom";
 
-/** "Press Start" screen shown over the idle town. */
+/**
+ * "Press Start" screen shown over the idle town. Two real buttons, so the click that starts the
+ * game also counts as the user gesture browsers require before audio can play.
+ */
 export function showTitle(
   root: HTMLElement,
-  options: { soundOn: boolean; onToggleSound(): boolean; onStart(): void },
+  options: { remembered: SoundChoice | null; onStart(withSound: boolean): void },
 ): () => void {
-  const start = el("button", { type: "button", class: "btn-start" }, "Press Start");
-  const sound = el("button", {
-    type: "button",
-    class: "btn-ghost",
-    "aria-pressed": String(options.soundOn),
-  });
-  const label = (on: boolean): string => (on ? "Sound: on" : "Sound: off");
-  sound.textContent = label(options.soundOn);
+  const silent = el("button", { type: "button", class: "btn-start" }, "Start silent");
+  const sound = el(
+    "button",
+    { type: "button", class: "btn-start btn-start-alt" },
+    "Start with sound",
+  );
 
   const screen = el(
     "div",
@@ -29,34 +31,30 @@ export function showTitle(
       el("p", { class: "title-kicker" }, "A portfolio you can walk through"),
       el("h1", { class: "title-name" }, PROFILE.name),
       el("p", { class: "title-sub" }, `${PROFILE.title} · ${PROFILE.location}`),
-      start,
-      sound,
+      el("div", { class: "title-buttons" }, silent, sound),
       el(
         "p",
         { class: "title-hint" },
         isTouchDevice()
           ? "Use the joystick to move · tap the yellow button to interact"
-          : "Arrows / WASD to move · E or Space to interact · Esc to close",
+          : "Arrows / WASD to move · E or Space to interact · Esc to close · M mutes",
       ),
       el(
         "p",
         { class: "title-hint" },
-        "Looking for the content fast? Use “Skip game” at the top-left.",
+        "Music is made in your browser, nothing is downloaded. Looking for the content fast? Use “Skip game” at the top-left.",
       ),
     ),
   );
   root.append(screen);
-  start.focus({ preventScroll: true });
+  // Silent is the default; if the visitor chose sound last time, that button gets focus instead.
+  (options.remembered === "sound" ? sound : silent).focus({ preventScroll: true });
 
-  const finish = (): void => {
+  const finish = (withSound: boolean): void => {
     screen.remove();
-    options.onStart();
+    options.onStart(withSound);
   };
-  start.addEventListener("click", finish);
-  sound.addEventListener("click", () => {
-    const on = options.onToggleSound();
-    sound.setAttribute("aria-pressed", String(on));
-    sound.textContent = label(on);
-  });
+  silent.addEventListener("click", () => finish(false));
+  sound.addEventListener("click", () => finish(true));
   return () => screen.remove();
 }

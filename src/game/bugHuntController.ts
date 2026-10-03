@@ -27,6 +27,7 @@ export class BugHuntController {
       sprite.on("pointerdown", () => this.squash(bug.id));
       this.sprites.set(bug.id, sprite);
     }
+    this.ctx.audio.setScene("minigame");
     this.ctx.hud.showToast(`Squash ${BUG_TARGET} bugs! Walk into them or tap them.`);
     this.refreshHud();
   }
@@ -51,8 +52,10 @@ export class BugHuntController {
     this.checkEnd();
   }
 
-  destroy(): void {
+  /** `restoreMusic` is false when the whole scene is shutting down (the next scene sets its own). */
+  destroy(restoreMusic = true): void {
     this.finished = true;
+    if (restoreMusic) this.ctx.audio.setScene("town");
     this.ctx.minigameHud.hide();
     for (const sprite of this.sprites.values()) sprite.destroy();
     this.sprites.clear();
@@ -77,7 +80,7 @@ export class BugHuntController {
         onComplete: () => splat.destroy(),
       });
     }
-    this.ctx.sfx.play("squash");
+    this.ctx.audio.play("squash");
     this.refreshHud();
     this.checkEnd();
   }

@@ -1,12 +1,14 @@
 import type { BuildingId } from "../content/buildings";
 import { aboutHtml, boardHtml, contactLinksHtml, projectsHtml, skillsHtml } from "../fallback/html";
 import type { PanelId } from "../systems/interaction";
+import type { AudioEngine } from "../audio/engine";
 import type { QuestEngine } from "../systems/quests/engine";
 import { achievementLines } from "../systems/quests/helpers";
 import { createContactForm } from "./contactForm";
 import { createCelebration } from "./celebration";
 import { createQuestLog } from "./questLog";
 import { createQuiz } from "./quizPanel";
+import { createSettings } from "./settingsPanel";
 import { el, focusableIn, nextId } from "./dom";
 import { createTerminal } from "./sections/terminalView";
 
@@ -14,6 +16,7 @@ export interface PanelContext {
   close(): void;
   teleport(target: BuildingId): void;
   quests: QuestEngine;
+  audio: AudioEngine;
   open(id: PanelId): void;
 }
 
@@ -85,6 +88,11 @@ const DEFS: Record<PanelId, PanelDef> = {
       return { element, focus };
     },
   },
+  settings: {
+    title: "Audio settings",
+    variant: "parchment",
+    render: (ctx) => createSettings(ctx.audio),
+  },
   quiz: {
     title: "Library: Match the stack",
     variant: "parchment",
@@ -110,6 +118,7 @@ const DEFS: Record<PanelId, PanelDef> = {
       const { element, input } = createTerminal((target) => ctx.teleport(target), {
         context: { achievements: () => achievementLines(ctx.quests) },
         emit: (event) => ctx.quests.emit(event),
+        onKey: () => ctx.audio.play("key"),
       });
       return { element, focus: input };
     },
@@ -127,6 +136,7 @@ export class PanelManager {
       onChange(open: boolean): void;
       teleport(target: BuildingId): void;
       quests: QuestEngine;
+      audio: AudioEngine;
     },
   ) {}
 
@@ -149,6 +159,7 @@ export class PanelManager {
           this.handlers.teleport(target);
         },
         quests: this.handlers.quests,
+        audio: this.handlers.audio,
         open: (next) => this.open(next),
       },
       options,

@@ -5,6 +5,7 @@ export interface HudHandlers {
   onToggleSound(): boolean;
   onHelp(): void;
   onQuests(): void;
+  onSettings(): void;
 }
 
 /** In-game heads-up display: interaction prompt, toasts, quest button and the sound toggle. */
@@ -36,6 +37,11 @@ export class Hud {
       "aria-keyshortcuts": "Q",
     });
     this.setQuestCount(0, 0);
+    const settings = el(
+      "button",
+      { type: "button", class: "hud-btn", "aria-label": "Audio settings" },
+      "Audio",
+    );
     const help = el(
       "button",
       { type: "button", class: "hud-btn", "aria-label": "Show controls and overview" },
@@ -45,7 +51,7 @@ export class Hud {
     this.element = el(
       "div",
       { class: "hud" },
-      el("div", { class: "hud-top" }, this.questBtn, this.soundBtn, help),
+      el("div", { class: "hud-top" }, this.questBtn, this.soundBtn, settings, help),
       this.prompt,
       this.toast,
       this.questToasts,
@@ -62,6 +68,7 @@ export class Hud {
     press(this.prompt, handlers.onAction);
     press(this.soundBtn, () => this.setSound(handlers.onToggleSound()));
     press(this.questBtn, handlers.onQuests);
+    press(settings, handlers.onSettings);
     press(help, handlers.onHelp);
   }
 

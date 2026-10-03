@@ -5,7 +5,11 @@ import { el, nextId } from "../dom";
 
 export function createTerminal(
   onOpen: (target: BuildingId) => void,
-  services: { context: TerminalContext; emit: (event: QuestEvent) => void },
+  services: {
+    context: TerminalContext;
+    emit: (event: QuestEvent) => void;
+    onKey?: () => void;
+  },
 ): {
   element: HTMLElement;
   input: HTMLInputElement;
@@ -59,6 +63,8 @@ export function createTerminal(
       window.setTimeout(() => onOpen(target), 600);
     }
   });
+
+  input.addEventListener("input", () => services.onKey?.());
 
   input.addEventListener("keydown", (event) => {
     if (event.key === "ArrowUp" && history.length > 0) {

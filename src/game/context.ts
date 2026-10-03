@@ -1,5 +1,5 @@
 import type { BuildingId } from "../content/buildings";
-import type { Sfx } from "../systems/audio";
+import type { AudioEngine } from "../audio/engine";
 import type { InputState } from "../systems/input";
 import type { QuestEngine } from "../systems/quests/engine";
 import type { DialogBox } from "../ui/dialogBox";
@@ -21,7 +21,7 @@ export interface GameContext {
   panels: PanelManager;
   dialog: DialogBox;
   hud: Hud;
-  sfx: Sfx;
+  audio: AudioEngine;
   quests: QuestEngine;
   director: QuestDirector;
   fishing: FishingCard;
