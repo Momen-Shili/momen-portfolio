@@ -96,6 +96,12 @@ checked in a real page, so it was verified by hand and is described instead of u
   game surface already uses `touch-action: none`.
 - **Test:** Browser (emulation only; see "Not verified").
 
+### 11. Plain page landmark and dark-theme contrast issues
+
+While redesigning the plain page, axe found a duplicate banner landmark, a floating button outside any
+landmark and a yellow button with light text in the dark theme. All fixed; axe now reports zero
+violations in both themes, and a test checks theme contrast.
+
 ## Checked and found fine
 
 - Console: zero errors and zero warnings on load, every panel, the dialog, fishing, map changes and

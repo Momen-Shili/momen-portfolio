@@ -86,7 +86,8 @@ src/
               quests/ (engine, definitions, persistence, mini-game rules)
   scenes/     BootScene (loading), WorldScene (town and interiors)
   ui/         DOM overlays: panels, dialog, HUD, title, joystick, contact form, terminal
-  fallback/   HTML builders shared by panels and the plain page
+  fallback/   HTML builders shared by panels and the plain page; renderFallback.ts is the page
+  plain/      optional plain-page polish (typewriter, reveal, theme)
   audio/      music data, sequencer, mixer math, effects and the Web Audio engine
   game/       start-up wiring, quest director, bug-hunt controller (Phaser loads lazily from here)
   main.ts     chooses game or plain mode
@@ -134,6 +135,40 @@ Quest text must not state facts about Momen. Anything factual is built from `por
 `FUN_FACTS` in `portfolio.ts` is empty on purpose (`TODO(Momen)`). When you add entries, the guide,
 the night-watch sparkle and the About panel / plain page start using them. While it is empty, none of
 those features appear.
+
+## Extending the town
+
+### Add a building
+
+1. Draw it in `src/world/art/buildings.ts` and place it (and its door tile) in `src/world/townMap.ts`.
+2. Add a name, alias and blurb in `src/content/buildings.ts`.
+3. Give it an interior: copy one of `src/world/interiors/*Interior.ts`, use `InteriorBuilder` to lay
+   out the room, and register its id in `MAP_IDS` (`src/world/maps.ts`). The door zone uses the
+   `enter` action and the interior's exit mat uses `exit`.
+4. Run `npm test`. `tests/maps.test.ts` checks that every door, NPC, hotspot and spawn is reachable.
+
+### Add an interior item (a hotspot inside a building)
+
+1. Add the item to `src/content/items.ts` (id, label, what it shows).
+2. Add its panel view in `src/ui/itemViews.ts`. Factual text must come from `portfolio.ts`.
+3. Place a zone with `action: "item"` in the interior builder. Anything revealed there also has to
+   exist in a normal panel and on the plain page; the content tests check this.
+
+### Add an animation or effect
+
+Ambient effects (clouds, birds, butterflies, leaves, window glow) live in `src/game/effects/` and use
+the sprite pool in `pool.ts` under the cap in `effectBudget.ts`, so frame time stays flat. Add the
+texture in `src/world/art/effects.ts`, register it in `src/config/assets.ts`, spawn it from
+`ambient.ts`, and honour `effectsReduced()` so "Reduce effects" and the OS reduced-motion setting
+switch it off. Add a test to `tests/effects.test.ts`.
+
+### The plain page
+
+`src/fallback/renderFallback.ts` builds the whole page from `portfolio.ts` at build time (the Vite
+plugin in `vite.config.ts` injects it, so it works with JavaScript off). `src/plain/enhance.ts` adds
+the optional typewriter, scroll reveal, active nav, back-to-top and light/dark theme, and
+`src/styles/plain.css` holds the two colour themes (contrast is checked in `tests/plainPage.test.ts`).
+`public/art/walker.png` is regenerated with `npm run walker`.
 
 ## Audio
 
