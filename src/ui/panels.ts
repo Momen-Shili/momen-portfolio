@@ -4,12 +4,14 @@ import type { PanelId } from "../systems/interaction";
 import type { AudioEngine } from "../audio/engine";
 import type { QuestEngine } from "../systems/quests/engine";
 import { achievementLines } from "../systems/quests/helpers";
+import { itemDef } from "../content/items";
 import { createContactForm } from "./contactForm";
+import { itemHtml } from "./itemViews";
 import { createCelebration } from "./celebration";
 import { createQuestLog } from "./questLog";
 import { createQuiz } from "./quizPanel";
 import { createSettings } from "./settingsPanel";
-import { el, focusableIn, nextId } from "./dom";
+import { el, focusableIn, nextId, prefersReducedMotion } from "./dom";
 import { createTerminal } from "./sections/terminalView";
 
 export interface PanelContext {
@@ -23,6 +25,8 @@ export interface PanelContext {
 export interface PanelOptions {
   /** Project name to feature when the Workshop panel opens (special delivery quest). */
   highlightProject?: string;
+  /** Interior item to show when the "item" panel opens (see content/items.ts). */
+  itemId?: string;
 }
 
 interface PanelView {
@@ -49,7 +53,12 @@ function highlightProject(root: HTMLElement, name: string): void {
   const card = cards.find((c) => c.querySelector(".project-name")?.textContent === name);
   if (!card) return;
   card.classList.add("is-featured");
-  const banner = el("p", { class: "featured-banner", role: "status" }, `Special delivery: ${name}`);
+  const banner = el(
+    "p",
+    { class: "featured-banner", role: "status" },
+    "Special delivery: ",
+    el("bdi", {}, name),
+  );
   root.prepend(banner);
   card.setAttribute("data-featured", "true");
   window.requestAnimationFrame(() => card.scrollIntoView({ block: "nearest" }));
@@ -73,10 +82,19 @@ const DEFS: Record<PanelId, PanelDef> = {
     variant: "parchment",
     render: () => {
       const { element } = htmlView(contactLinksHtml());
-      const { form, firstField } = createContactForm();
+      const { form, firstField } = createContactForm("game-post-office");
       element.append(el("h3", {}, "Send a message"), form);
       return { element, focus: firstField };
     },
+  },
+  item: {
+    title: "Look closer",
+    variant: "parchment",
+    render: (_ctx, options) =>
+      htmlView(
+        (options.itemId ? itemHtml(options.itemId) : null) ??
+          "<p>There is nothing more to see here.</p>",
+      ),
   },
   quests: {
     title: "Quest log",
@@ -129,6 +147,7 @@ const DEFS: Record<PanelId, PanelDef> = {
 export class PanelManager {
   private overlay: HTMLElement | null = null;
   private returnFocus: HTMLElement | null = null;
+  private readonly closedListeners = new Set<() => void>();
 
   constructor(
     private readonly root: HTMLElement,
@@ -140,13 +159,23 @@ export class PanelManager {
     },
   ) {}
 
+  /** Runs after any panel closes (for work that must wait until the player is free again). */
+  onClosed(listener: () => void): () => void {
+    this.closedListeners.add(listener);
+    return () => this.closedListeners.delete(listener);
+  }
+
   get isOpen(): boolean {
     return this.overlay !== null;
   }
 
   open(id: PanelId, options: PanelOptions = {}): void {
     if (this.overlay) this.close();
+    // A previous panel may still be fading out; remove it so two never overlap.
+    this.root.querySelectorAll(".panel-backdrop.is-closing").forEach((n) => n.remove());
     const def = DEFS[id];
+    const title =
+      id === "item" && options.itemId ? (itemDef(options.itemId)?.title ?? def.title) : def.title;
     this.returnFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
@@ -179,7 +208,7 @@ export class PanelManager {
         "aria-labelledby": titleId,
         tabindex: "-1",
       },
-      el("header", { class: "panel-header" }, el("h2", { id: titleId }, def.title), closeBtn),
+      el("header", { class: "panel-header" }, el("h2", { id: titleId }, title), closeBtn),
       // Focusable so keyboard users can scroll long content even when it has no links or buttons.
       el(
         "div",
@@ -204,15 +233,22 @@ export class PanelManager {
 
   close(): void {
     if (!this.overlay) return;
-    this.overlay.remove();
+    const closing = this.overlay;
     this.overlay = null;
+    if (prefersReducedMotion()) closing.remove();
+    else {
+      closing.classList.add("is-closing");
+      window.setTimeout(() => closing.remove(), 130);
+    }
     this.handlers.onChange(false);
+    for (const listener of this.closedListeners) listener();
     const target = this.returnFocus;
     this.returnFocus = null;
     if (target && document.contains(target)) target.focus({ preventScroll: true });
   }
 
   destroy(): void {
+    this.root.querySelectorAll(".panel-backdrop").forEach((n) => n.remove());
     this.overlay?.remove();
     this.overlay = null;
   }

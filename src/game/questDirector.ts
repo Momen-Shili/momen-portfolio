@@ -2,7 +2,10 @@ import type { WorldApi } from "./context";
 import type { QuestEngine } from "../systems/quests/engine";
 import { GEM_IDS, gemLines, pickHighlight, type SkillGroup } from "../systems/quests/helpers";
 import { planTalk, type AfterAction } from "../systems/quests/npcTalk";
+import { itemDef } from "../content/items";
+import { copyText } from "../ui/clipboard";
 import type { DialogBox } from "../ui/dialogBox";
+import type { Hud } from "../ui/hud";
 import type { PanelManager } from "../ui/panels";
 
 /**
@@ -13,7 +16,7 @@ import type { PanelManager } from "../ui/panels";
 export class QuestDirector {
   constructor(
     private readonly quests: QuestEngine,
-    private readonly ui: { dialog: DialogBox; panels: PanelManager },
+    private readonly ui: { dialog: DialogBox; panels: PanelManager; hud: Hud },
     private readonly getWorld: () => WorldApi | null,
   ) {}
 
@@ -24,6 +27,27 @@ export class QuestDirector {
     for (const event of plan.emit) this.quests.emit(event);
     this.ui.dialog.open(plan.lines, () => this.runAfter(plan.after));
     return true;
+  }
+
+  /** Opens an interior item: a content panel, or a short neutral line for flavor items. */
+  openItem(itemId: string): void {
+    const def = itemDef(itemId);
+    if (!def) return;
+    if (def.kind === "flavor") {
+      const speaker = def.speaker ?? def.title;
+      this.ui.dialog.open((def.lines ?? []).map((text) => ({ speaker, text })));
+    } else {
+      this.ui.panels.open("item", { itemId });
+    }
+  }
+
+  /** The stamp machine: copies a contact value and says so. */
+  copyValue(value: string, label: string): void {
+    void copyText(value).then((ok) => {
+      this.ui.hud.showToast(
+        ok ? `${label} copied: ${value}` : `Could not copy. ${label}: ${value}`,
+      );
+    });
   }
 
   collectGem(group: SkillGroup): void {

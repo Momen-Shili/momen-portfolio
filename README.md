@@ -82,11 +82,12 @@ src/
   content/    portfolio.ts (single source of truth), npcs.ts, buildings.ts
   config/     assets.ts (asset manifest)
   world/      map data, tile indices, pixel font, generated art
-  systems/    pure logic: input, dialog, interaction zones, terminal parser, contact/mailto,
+  systems/    pure logic: input, dialog, interaction zones, terminal parser, contact (form logic, send layer, mailto fallback),
               quests/ (engine, definitions, persistence, mini-game rules)
   scenes/     BootScene (loading), WorldScene (town and interiors)
   ui/         DOM overlays: panels, dialog, HUD, title, joystick, contact form, terminal
-  fallback/   HTML builders shared by panels and the plain page
+  fallback/   HTML builders shared by panels and the plain page; renderFallback.ts is the page
+  plain/      optional plain-page polish (typewriter, reveal, theme)
   audio/      music data, sequencer, mixer math, effects and the Web Audio engine
   game/       start-up wiring, quest director, bug-hunt controller (Phaser loads lazily from here)
   main.ts     chooses game or plain mode
@@ -135,6 +136,40 @@ Quest text must not state facts about Momen. Anything factual is built from `por
 the night-watch sparkle and the About panel / plain page start using them. While it is empty, none of
 those features appear.
 
+## Extending the town
+
+### Add a building
+
+1. Draw it in `src/world/art/buildings.ts` and place it (and its door tile) in `src/world/townMap.ts`.
+2. Add a name, alias and blurb in `src/content/buildings.ts`.
+3. Give it an interior: copy one of `src/world/interiors/*Interior.ts`, use `InteriorBuilder` to lay
+   out the room, and register its id in `MAP_IDS` (`src/world/maps.ts`). The door zone uses the
+   `enter` action and the interior's exit mat uses `exit`.
+4. Run `npm test`. `tests/maps.test.ts` checks that every door, NPC, hotspot and spawn is reachable.
+
+### Add an interior item (a hotspot inside a building)
+
+1. Add the item to `src/content/items.ts` (id, label, what it shows).
+2. Add its panel view in `src/ui/itemViews.ts`. Factual text must come from `portfolio.ts`.
+3. Place a zone with `action: "item"` in the interior builder. Anything revealed there also has to
+   exist in a normal panel and on the plain page; the content tests check this.
+
+### Add an animation or effect
+
+Ambient effects (clouds, birds, butterflies, leaves, window glow) live in `src/game/effects/` and use
+the sprite pool in `pool.ts` under the cap in `effectBudget.ts`, so frame time stays flat. Add the
+texture in `src/world/art/effects.ts`, register it in `src/config/assets.ts`, spawn it from
+`ambient.ts`, and honour `effectsReduced()` so "Reduce effects" and the OS reduced-motion setting
+switch it off. Add a test to `tests/effects.test.ts`.
+
+### The plain page
+
+`src/fallback/renderFallback.ts` builds the whole page from `portfolio.ts` at build time (the Vite
+plugin in `vite.config.ts` injects it, so it works with JavaScript off). `src/plain/enhance.ts` adds
+the optional typewriter, scroll reveal, active nav, back-to-top and light/dark theme, and
+`src/styles/plain.css` holds the two colour themes (contrast is checked in `tests/plainPage.test.ts`).
+`public/art/walker.png` is regenerated with `npm run walker`.
+
 ## Audio
 
 All audio is generated in the browser with the Web Audio API: no audio files, no licences, no download.
@@ -153,6 +188,82 @@ All audio is generated in the browser with the Web Audio API: no audio files, no
 To use a real recording, set `file` for a track in `src/config/audio.ts`
 (for example `{ town: { file: "audio/town.ogg" } }`, file under `public/audio/`). It loops (the title
 and victory tracks play once) and the generated version is the fallback if the file fails to load.
+
+## Contact form (Netlify Forms)
+
+The form in the Post office and on the plain page is one shared module (`src/ui/contactForm.ts`,
+state machine in `src/systems/contactFlow.ts`). It posts to this site's own Netlify Forms endpoint;
+there is no backend, API key or third-party script. This is the only network request the site makes.
+
+- **How Netlify finds the form:** a hidden static copy lives in `index.html`
+  (`<form name="contact" data-netlify="true" netlify-honeypot="bot-field" hidden>`). Netlify reads it
+  from the built HTML at deploy time. The real form posts the same field names (`name`, `email`,
+  `message`, `source`, `bot-field`, plus `form-name=contact`); `tests/seoBuild.test.ts` fails if the two
+  ever drift apart. If you add a field, change `CONTACT_FIELDS` in `src/systems/contact.ts` and the
+  static form together.
+- **`source`** is `game-post-office` or `plain-page`, so you can see where each message came from.
+- **Spam protection:** a hidden honeypot field, a 2 second minimum fill time, and Netlify's built-in
+  spam filtering. No CAPTCHA.
+- **If sending fails** (offline, a local server, Netlify not set up yet), the form keeps what was
+  typed and shows "Couldn't send it. You can email me directly at contact@momenshili.app" with a
+  `mailto:` link that already contains the message.
+- **Local development:** Netlify Forms do not exist on `npm run dev` or `npm run preview`, so a
+  submit there ends in the fallback message above. That is expected. To see the success state, mock
+  the endpoint in the browser console: `window.fetch = async () => new Response("", { status: 200 })`.
+- **Swapping the backend later** (a Netlify Function plus an email provider): only
+  `src/systems/contactSend.ts` (`sendContactMessage`) changes.
+- **Redirects:** `netlify.toml` deliberately has no `[[redirects]]`. A catch-all rule would swallow the
+  form POST to `/`. A test guards this.
+
+### Netlify checklist (one time)
+
+1. Netlify -> Forms: **Enable form detection**.
+2. Deploy a build that contains the form (merge `dev` into `main`, or deploy the branch) and wait for
+   it to finish. The `contact` form only appears after such a deploy. If it does not, use Deploys ->
+   Trigger deploy -> **Clear cache and deploy site**.
+3. Forms -> contact -> Settings & notifications -> Form notifications -> **Add notification ->
+   Email notification**, and enter the address that should receive messages.
+4. Send a real test message from the live plain page and another from the game's Post office. Check
+   that each arrives by email and shows in the Netlify submissions list with the right `source`.
+5. Check the spam folder once and mark the sender as not spam.
+
+`contact@momenshili.app` (used by the `mailto:` links and the failure fallback) must also receive mail:
+set up email forwarding or a mailbox for that address with your domain or email provider.
+
+## SEO and meta
+
+Everything factual is generated from `src/content/portfolio.ts`; nothing is hand-written in the HTML.
+
+| What                                                                  | Where                                             |
+| --------------------------------------------------------------------- | ------------------------------------------------- |
+| Title (about 55 characters), description (about 155), JSON-LD         | `src/seo/meta.ts`                                 |
+| Head tags (canonical, Open Graph, Twitter, robots, `rel="me"`, icons) | `index.html` with `{{TOKENS}}` filled at build    |
+| `robots.txt` and `sitemap.xml` (lastmod = build date)                 | emitted by the plugin in `vite.config.ts`         |
+| Social image 1200x630 (under 300 KB)                                  | `npm run og` (`scripts/make-og.mjs`)              |
+| Caching and security headers (including a CSP)                        | `netlify.toml`                                    |
+| The plain page the crawlers read                                      | `src/fallback/renderFallback.ts`, built into HTML |
+
+Structured data is a `Person`, `WebSite`, `ProfilePage` and an `ItemList` of projects (name and
+description only). The page never sets a Twitter/X handle.
+
+**Only production is indexable.** Netlify sets `CONTEXT`; anything other than `production` (deploy
+previews, branch deploys, and local builds) gets `<meta name="robots" content="noindex, nofollow">` and
+a `robots.txt` that disallows everything. The canonical URL always points at `https://momenshili.app/`.
+Once the custom domain works, make the default `*.netlify.app` address redirect to it (Netlify ->
+Domain management -> set the custom domain as primary). Add a redirect rule only with the exact
+subdomain, and keep it host-specific so it cannot catch the form POST.
+
+**Search console tokens (optional).** In Netlify -> Site configuration -> Environment variables add
+`VITE_GOOGLE_SITE_VERIFICATION` and/or `VITE_BING_SITE_VERIFICATION` (the token string only), then
+redeploy. The meta tag is added only when a value is set.
+
+**Submit the sitemap.** Google: Search Console -> add the property -> verify (token above or DNS) ->
+Sitemaps -> enter `sitemap.xml`. Bing: Webmaster Tools -> add the site (or import from Google) ->
+Sitemaps -> submit `https://momenshili.app/sitemap.xml`.
+
+**Preview the social card** with the free debuggers: Facebook's Sharing Debugger, LinkedIn's Post
+Inspector, and X's card preview (or just post the link in a private chat). These platforms cache images,
+so use their "scrape again" option after changing `og-image.png`.
 
 ## Deploy to Netlify in 3 minutes
 
@@ -179,7 +290,7 @@ headers), so Netlify detects everything.
    `momenshili.app` so `www` redirects to it.
 
 Other hosts also work (Vercel config in `vercel.json`, GitHub Pages via `public/CNAME`, Cloudflare
-Pages via `public/_headers`). The old "Deploy to momenshili.app" notes below still apply to them.
+Pages, which would need the headers from `netlify.toml` copied to a `_headers` file). The old "Deploy to momenshili.app" notes below still apply to them.
 
 ## Other static hosts
 
@@ -187,7 +298,7 @@ Pages via `public/_headers`). The old "Deploy to momenshili.app" notes below sti
 
 - **Vercel**: import the repo; `vercel.json` sets the build command, output folder and caching.
 - **Netlify**: `netlify.toml` is included. **Cloudflare Pages**: build command `npm run build`,
-  output `dist` (`public/_headers` is picked up).
+  output `dist`. Netlify Forms and the headers in `netlify.toml` are Netlify features, so the contact form falls back to the `mailto:` link there.
 - **GitHub Pages**: publish `dist/`; `public/CNAME` already contains `momenshili.app`.
 
 Then point the domain's DNS at the host (apex `A`/`ALIAS` plus `www` `CNAME`, per the host's

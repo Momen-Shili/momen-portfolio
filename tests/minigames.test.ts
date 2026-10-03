@@ -14,6 +14,7 @@ import {
   pickFish,
 } from "../src/systems/quests/minigames/fishing";
 import { IdleTracker } from "../src/systems/quests/minigames/idle";
+import { MAX_FRAME_MS, clampFrame } from "../src/systems/quests/minigames/timing";
 import { QUIZ_ROUNDS, buildQuiz } from "../src/systems/quests/minigames/quiz";
 import { QuestEngine } from "../src/systems/quests/engine";
 import { QUESTS } from "../src/systems/quests/definitions";
@@ -28,6 +29,11 @@ function seeded(seed: number): () => number {
     a = (a * 1664525 + 1013904223) % 4294967296;
     return a / 4294967296;
   };
+}
+
+/** Runs an update function in small steps, the way a real frame loop would. */
+function stepFor(ms: number, update: (dt: number) => unknown, step = 50): void {
+  for (let t = 0; t < ms; t += step) update(Math.min(step, ms - t));
 }
 
 const memory = () => {
@@ -82,7 +88,7 @@ describe("BugHunt", () => {
 
   it("times out without a fail state beyond that, and can be restarted with a new hunt", () => {
     const hunt = make();
-    hunt.update(BUG_TIME_MS + 1);
+    stepFor(BUG_TIME_MS + 1, (dt) => hunt.update(dt));
     expect(hunt.status).toBe("timeout");
     expect(hunt.timeLeft).toBe(0);
     const before = JSON.stringify(hunt.bugs);
@@ -135,7 +141,7 @@ describe("fishing", () => {
   it("bites after the wait and lets the player catch inside the window", () => {
     const s = new FishingSession(() => 0, []);
     expect(s.phase).toBe("waiting");
-    expect(s.update(DEFAULT_FISHING.minWaitMs - 1)).toBeNull();
+    stepFor(DEFAULT_FISHING.minWaitMs - 1, (dt) => s.update(dt), 10);
     expect(s.phase).toBe("waiting");
     expect(s.update(2)).toBeNull();
     expect(s.phase).toBe("bite");
@@ -149,14 +155,16 @@ describe("fishing", () => {
     const s = new FishingSession(() => 0, []);
     expect(s.press()).toEqual({ kind: "early" });
     expect(s.phase).toBe("waiting");
-    s.update(DEFAULT_FISHING.minWaitMs + 1);
+    stepFor(DEFAULT_FISHING.minWaitMs + 1, (dt) => s.update(dt));
     expect(s.phase).toBe("bite");
   });
 
   it("lets the fish get away when the bite window passes", () => {
     const s = new FishingSession(() => 0, []);
-    s.update(DEFAULT_FISHING.minWaitMs + 1);
-    expect(s.update(DEFAULT_FISHING.biteWindowMs + 1)).toEqual({ kind: "missed" });
+    stepFor(DEFAULT_FISHING.minWaitMs + 1, (dt) => s.update(dt));
+    const results: unknown[] = [];
+    stepFor(DEFAULT_FISHING.biteWindowMs + 100, (dt) => results.push(s.update(dt)));
+    expect(results).toContainEqual({ kind: "missed" });
     expect(s.phase).toBe("ended");
     expect(s.update(1000)).toBeNull();
   });
@@ -185,19 +193,28 @@ describe("night watch", () => {
   it("fires once after ten still seconds in the zone", () => {
     const idle = new IdleTracker(10_000);
     const still = { inZone: true, moving: false };
-    expect(idle.update(9_999, still)).toBe(false);
-    expect(idle.update(2, still)).toBe(true);
-    expect(idle.update(5_000, still)).toBe(false);
+    let fired = 0;
+    stepFor(9_900, (dt) => idle.update(dt, still) && fired++, 100);
+    expect(fired).toBe(0);
+    stepFor(200, (dt) => idle.update(dt, still) && fired++, 100);
+    expect(fired).toBe(1);
+    stepFor(5_000, (dt) => idle.update(dt, still) && fired++, 100);
+    expect(fired).toBe(1);
   });
 
   it("resets when the player moves or leaves the zone", () => {
     const idle = new IdleTracker(1000);
-    idle.update(900, { inZone: true, moving: false });
+    const still = { inZone: true, moving: false };
+    stepFor(900, (dt) => idle.update(dt, still), 50);
     idle.update(16, { inZone: true, moving: true });
-    expect(idle.update(900, { inZone: true, moving: false })).toBe(false);
+    let fired = false;
+    stepFor(900, (dt) => (fired ||= idle.update(dt, still)), 50);
+    expect(fired).toBe(false);
     idle.update(16, { inZone: false, moving: false });
-    expect(idle.update(900, { inZone: true, moving: false })).toBe(false);
-    expect(idle.update(200, { inZone: true, moving: false })).toBe(true);
+    stepFor(900, (dt) => (fired ||= idle.update(dt, still)), 50);
+    expect(fired).toBe(false);
+    stepFor(200, (dt) => (fired ||= idle.update(dt, still)), 50);
+    expect(fired).toBe(true);
   });
 });
 
@@ -273,5 +290,45 @@ describe("fun facts", () => {
     } finally {
       FUN_FACTS.length = 0;
     }
+  });
+});
+
+describe("frame clamp (tab refocus, slow devices)", () => {
+  it("caps a single huge step so the bug hunt cannot time out in one frame", () => {
+    const hunt = new BugHunt({
+      rng: seeded(5),
+      area: { x0: 0, y0: 0, x1: 160, y1: 120 },
+      isBlocked: () => false,
+    });
+    hunt.update(60_000);
+    expect(hunt.status).toBe("running");
+    expect(hunt.timeLeft).toBeGreaterThan(BUG_TIME_MS - 200);
+  });
+
+  it("keeps bugs out of obstacles even after a huge step", () => {
+    const blocked = (x: number) => x > 70 && x < 90;
+    const hunt = new BugHunt({
+      rng: seeded(9),
+      area: { x0: 0, y0: 0, x1: 160, y1: 120 },
+      isBlocked: blocked,
+    });
+    hunt.update(30_000);
+    for (const b of hunt.bugs) expect(blocked(b.x)).toBe(false);
+  });
+
+  it("does not let a hidden tab complete night watch or end a fishing bite window", () => {
+    const idle = new IdleTracker(10_000);
+    expect(idle.update(600_000, { inZone: true, moving: false })).toBe(false);
+    const s = new FishingSession(() => 0, []);
+    expect(s.update(600_000)).toBeNull();
+    expect(s.phase).toBe("waiting");
+  });
+
+  it("ignores negative and non-finite steps", () => {
+    expect(clampFrame(-5)).toBe(0);
+    expect(clampFrame(Number.NaN)).toBe(0);
+    expect(clampFrame(Number.POSITIVE_INFINITY)).toBe(0);
+    expect(clampFrame(40)).toBe(40);
+    expect(clampFrame(10_000)).toBe(MAX_FRAME_MS);
   });
 });

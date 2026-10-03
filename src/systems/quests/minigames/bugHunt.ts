@@ -1,3 +1,5 @@
+import { clampFrame } from "./timing";
+
 export const BUG_TARGET = 7;
 export const BUG_COUNT = 10;
 export const BUG_TIME_MS = 30_000;
@@ -70,8 +72,9 @@ export class BugHunt {
     return 700 + this.opts.rng() * 900;
   }
 
-  update(dtMs: number): void {
+  update(rawDtMs: number): void {
     if (this.status !== "running") return;
+    const dtMs = clampFrame(rawDtMs);
     this.timeLeft = Math.max(0, this.timeLeft - dtMs);
     const dt = dtMs / 1000;
     const { area, isBlocked } = this.opts;

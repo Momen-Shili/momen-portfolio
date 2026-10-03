@@ -1,46 +1,34 @@
 import { type Plugin } from "vite";
 import { defineConfig } from "vitest/config";
-import { LINKS, PROFILE } from "./src/content/portfolio.ts";
 import { renderFallback } from "./src/fallback/renderFallback.ts";
+import { applyTokens, robotsTxt, sitemapXml, type SeoOptions } from "./src/seo/meta.ts";
 
-const SITE_URL = "https://momenshili.app";
-
-function jsonLd(): string {
-  const data = {
-    "@context": "https://schema.org",
-    "@type": "Person",
-    name: PROFILE.name,
-    jobTitle: PROFILE.title,
-    url: SITE_URL,
-    description: PROFILE.short,
-    address: { "@type": "PostalAddress", addressLocality: PROFILE.location },
-    knowsLanguage: [...PROFILE.languages],
-    email: `mailto:${LINKS.email}`,
-    sameAs: [LINKS.linkedin, LINKS.github],
-  };
-  return JSON.stringify(data).replace(/</g, "\\u003c");
-}
-
-/** Fills the page metadata and the plain-page fallback from src/content/portfolio.ts. */
+/**
+ * Fills the page metadata and the plain-page fallback from src/content/portfolio.ts and emits
+ * robots.txt and sitemap.xml. Netlify sets CONTEXT; anything but "production" is kept out of
+ * search results (noindex meta plus a robots.txt that disallows everything).
+ */
 function portfolioHtml(): Plugin {
-  const escAttr = (v: string): string => v.replace(/&/g, "&amp;").replace(/"/g, "&quot;");
-  const tokens: Record<string, string> = {
-    "{{TITLE}}": escAttr(`${PROFILE.name} - ${PROFILE.title}`),
-    "{{NAME}}": escAttr(PROFILE.name),
-    "{{DESCRIPTION}}": escAttr(PROFILE.short),
-    "{{SITE_URL}}": SITE_URL,
-    "{{OG_IMAGE}}": `${SITE_URL}/og-image.png`,
-    "{{JSON_LD}}": jsonLd(),
-  };
+  let options: SeoOptions = { buildDate: new Date().toISOString().slice(0, 10) };
   return {
     name: "portfolio-html",
+    configResolved(config) {
+      options = {
+        context: process.env["CONTEXT"],
+        googleVerification: config.env["VITE_GOOGLE_SITE_VERIFICATION"] as string | undefined,
+        bingVerification: config.env["VITE_BING_SITE_VERIFICATION"] as string | undefined,
+        buildDate: new Date().toISOString().slice(0, 10),
+      };
+    },
     transformIndexHtml: {
       order: "pre",
       handler(html) {
-        let out = html.replace("<!--FALLBACK-->", renderFallback());
-        for (const [token, value] of Object.entries(tokens)) out = out.split(token).join(value);
-        return out;
+        return applyTokens(html.replace("<!--FALLBACK-->", renderFallback()), options);
       },
+    },
+    generateBundle() {
+      this.emitFile({ type: "asset", fileName: "robots.txt", source: robotsTxt(options) });
+      this.emitFile({ type: "asset", fileName: "sitemap.xml", source: sitemapXml(options) });
     },
   };
 }

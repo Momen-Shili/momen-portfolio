@@ -1,6 +1,7 @@
 // Generates public/og-image.png (1200x630) with no dependencies.
 // Run: npm run og   (Node 22.6+ strips the TypeScript types of the imported modules)
 import { mkdirSync, writeFileSync } from "node:fs";
+import sharp from "sharp";
 import { crc32, deflateSync } from "node:zlib";
 import { PROFILE } from "../src/content/portfolio.ts";
 import { forEachTextPixel, textWidth } from "../src/world/pixelFont.ts";
@@ -76,22 +77,47 @@ function tree(tx, ty) {
 for (const tx of [24, 28, 68, 72]) tree(tx, 31);
 for (const tx of [2, 40, 56, 94]) tree(tx, 44);
 
-// Title card.
-const cardW = 760;
-const cardH = 300;
+// Title card: the pixel portrait on the left, name and role on the right.
+const cardW = 1000;
+const cardH = 340;
 const cx = (W - cardW) / 2;
-const cy = 150;
+const cy = 145;
 rect(cx + 14, cy + 14, cardW, cardH, 0x1b1423);
 rect(cx, cy, cardW, cardH, 0x3e2813);
 rect(cx + 8, cy + 8, cardW - 16, cardH - 16, 0xc99a2e);
 rect(cx + 14, cy + 14, cardW - 28, cardH - 28, 0xf6ecd4);
 
+// Portrait (64x64 art scaled 4x with hard pixels), framed.
+const PS = 4;
+const portrait = await sharp("public/art/portrait-avatar.png")
+  .resize(64, 64, { kernel: "nearest" })
+  .ensureAlpha()
+  .raw()
+  .toBuffer();
+const px0 = cx + 48;
+const py0 = cy + (cardH - 64 * PS) / 2;
+rect(px0 - 8, py0 - 8, 64 * PS + 16, 64 * PS + 16, 0x3e2813);
+for (let y = 0; y < 64; y++) {
+  for (let x = 0; x < 64; x++) {
+    const i = (y * 64 + x) * 4;
+    const color = (portrait[i] << 16) | (portrait[i + 1] << 8) | portrait[i + 2];
+    rect(px0 + x * PS, py0 + y * PS, PS, PS, color);
+  }
+}
+
+const textX = px0 + 64 * PS + 56;
+const textW = cx + cardW - 40 - textX;
 const name = PROFILE.name.toUpperCase();
-const nameScale = 14;
-text(name, Math.round((W - textWidth(name, nameScale)) / 2), cy + 72, nameScale, 0x2b2118);
+let nameScale = 10;
+while (textWidth(name, nameScale) > textW) nameScale -= 1;
+text(name, textX, cy + 100, nameScale, 0x2b2118);
+rect(textX, cy + 100 + nameScale * 6 + 18, textW, 6, 0xc99a2e);
 const title = PROFILE.title.toUpperCase();
-const titleScale = 8;
-text(title, Math.round((W - textWidth(title, titleScale)) / 2), cy + 190, titleScale, 0x5a4631);
+let titleScale = 6;
+while (textWidth(title, titleScale) > textW) titleScale -= 1;
+text(title, textX, cy + 100 + nameScale * 6 + 48, titleScale, 0x5a4631);
+const where = PROFILE.location.replace(",", " -").toUpperCase();
+text(where, textX, cy + 100 + nameScale * 6 + 48 + titleScale * 6 + 22, 4, 0x5a4631);
 
 // PNG encode.
 const raw = Buffer.alloc((W * 3 + 1) * H);

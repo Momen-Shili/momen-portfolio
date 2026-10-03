@@ -1,4 +1,5 @@
 import { PROJECTS } from "../../../content/portfolio";
+import { clampFrame } from "./timing";
 
 export interface Fish {
   /** The project tag the fish is named after. */
@@ -67,7 +68,7 @@ export class FishingSession {
   /** Advances time. Returns "missed" when the bite window runs out. */
   update(dtMs: number): FishingResult | null {
     if (this.phase === "ended") return null;
-    this.timer -= dtMs;
+    this.timer -= clampFrame(dtMs);
     if (this.timer > 0) return null;
     if (this.phase === "waiting") {
       this.phase = "bite";

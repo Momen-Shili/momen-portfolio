@@ -3,6 +3,19 @@ import type { QuestDef } from "../systems/quests/types";
 import { el } from "./dom";
 
 const CONFIRM_MS = 4000;
+const NEW_BADGE_MS = 90_000;
+
+const earnedAt = new Map<string, number>();
+
+/** Called when a quest completes, so its badge gets a flourish in the quest log for a while. */
+export function markBadgeEarned(badgeId: string, now = Date.now()): void {
+  earnedAt.set(badgeId, now);
+}
+
+export function isRecentBadge(badgeId: string, now = Date.now()): boolean {
+  const at = earnedAt.get(badgeId);
+  return at !== undefined && now - at < NEW_BADGE_MS;
+}
 
 function questItem(engine: QuestEngine, def: QuestDef): HTMLElement {
   const status = engine.progress(def.id).status;
@@ -65,8 +78,12 @@ export function createQuestLog(
     const meter = el("progress", {
       class: "quest-meter",
       max: String(engine.total),
-      value: String(engine.doneCount),
+      value: "0",
       "aria-label": "Quests completed",
+    });
+    // Start empty and fill on the next frame so the bar visibly grows.
+    window.requestAnimationFrame(() => {
+      meter.value = engine.doneCount;
     });
 
     const badgeList =
@@ -77,7 +94,10 @@ export function createQuestLog(
             ...badges.map((b) =>
               el(
                 "li",
-                { class: "badge-chip", title: b.description },
+                {
+                  class: isRecentBadge(b.id) ? "badge-chip is-new" : "badge-chip",
+                  title: b.description,
+                },
                 `${b.name}: ${b.description}`,
               ),
             ),

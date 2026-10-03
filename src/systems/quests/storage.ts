@@ -1,4 +1,4 @@
-import type { CosmeticId, QuestDef, QuestProgress, QuestState, QuestStatus } from "./types";
+import type { QuestDef, QuestProgress, QuestState, QuestStatus } from "./types";
 
 /** The slice of the Web Storage API we use, so it can be faked in tests. */
 export interface KeyValueStorage {
@@ -11,7 +11,6 @@ const NAMESPACE = "momen-portfolio:v1";
 export const QUEST_KEY = `${NAMESPACE}:quests`;
 export const AUDIO_KEY = `${NAMESPACE}:audio`;
 const VERSION = 1;
-const COSMETICS: readonly CosmeticId[] = ["gem-trail", "fishing-hat"];
 
 /** Storage that never throws. Falls back to memory when localStorage is unavailable or blocked. */
 export function createSafeStorage(
@@ -91,19 +90,16 @@ export function parseState(raw: unknown, defs: readonly QuestDef[]): QuestState 
   }
 
   const done = defs.filter((d) => quests[d.id]?.status === "done");
-  const knownBadges = new Set(done.map((d) => d.reward.badge.id));
   const knownCosmetics = new Set(
     done.flatMap((d) => (d.reward.cosmetic ? [d.reward.cosmetic] : [])),
   );
   return {
     quests,
     items: stringList(raw["items"]),
-    // Rewards are re-derived from completed quests so a edited save cannot grant extras.
-    badges: stringList(raw["badges"]).filter((b) => knownBadges.has(b)),
-    cosmetics: stringList(raw["cosmetics"]).filter(
-      (c): c is CosmeticId =>
-        COSMETICS.includes(c as CosmeticId) && knownCosmetics.has(c as CosmeticId),
-    ),
+    // Rewards always follow from the completed quests: a damaged or edited save can neither
+    // grant extras nor lose a badge that was earned.
+    badges: done.map((d) => d.reward.badge.id),
+    cosmetics: [...knownCosmetics],
     celebrated: raw["celebrated"] === true && done.length === defs.length,
   };
 }

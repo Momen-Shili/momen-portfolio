@@ -117,6 +117,47 @@ const DRAWERS: Record<number, TileDrawer> = {
     rect(ctx, ox + 11, 9, 2, 2, "#f2c14e");
   },
   [T.VOID]: (ctx, ox) => rect(ctx, ox, 0, TILE, TILE, "#1b1423"),
+  [T.FLOOR_STONE]: (ctx, ox, rnd) => {
+    rect(ctx, ox, 0, TILE, TILE, "#8e8f9b");
+    for (let y = 0; y < 2; y++) {
+      for (let x = 0; x < 2; x++) {
+        const tone = shade("#b4b5c2", (rnd() - 0.5) * 0.14);
+        rect(ctx, ox + x * 8, y * 8, 7, 7, tone);
+      }
+    }
+    speckle(ctx, ox, rnd, "#9d9eab", 4);
+  },
+  [T.FLOOR_DARK]: (ctx, ox, rnd) => {
+    rect(ctx, ox, 0, TILE, TILE, "#6b4a30");
+    for (let row = 0; row < 4; row++) {
+      rect(ctx, ox, row * 4 + 3, TILE, 1, "#4f3522");
+      rect(ctx, ox + ((row * 5 + 3) % TILE), row * 4, 1, 3, "#5a3d27");
+    }
+    speckle(ctx, ox, rnd, "#7d5a3c", 4);
+  },
+  [T.FLOOR_CHECK]: (ctx, ox) => {
+    for (let y = 0; y < 2; y++) {
+      for (let x = 0; x < 2; x++) {
+        rect(ctx, ox + x * 8, y * 8, 8, 8, (x + y) % 2 === 0 ? "#f0e6d0" : "#8fb59a");
+      }
+    }
+  },
+  [T.WALL_BRICK]: (ctx, ox) => {
+    rect(ctx, ox, 0, TILE, TILE, "#9a5a42");
+    for (let row = 0; row < 4; row++) {
+      rect(ctx, ox, row * 4 + 3, TILE, 1, "#6d3b2a");
+      const off = row % 2 === 0 ? 0 : 4;
+      for (let x = off; x < TILE; x += 8) rect(ctx, ox + x, row * 4, 1, 3, "#6d3b2a");
+    }
+  },
+  [T.WALL_GREEN]: (ctx, ox) => {
+    rect(ctx, ox, 0, TILE, TILE, "#bfe0c6");
+    for (let x = 0; x < TILE; x += 4) rect(ctx, ox + x, 0, 1, TILE, "#a9cfb1");
+  },
+  [T.WALL_BLUE]: (ctx, ox) => {
+    rect(ctx, ox, 0, TILE, TILE, "#b8c4e0");
+    for (let x = 0; x < TILE; x += 4) rect(ctx, ox + x, 0, 1, TILE, "#a3b1d3");
+  },
 };
 
 export function drawTileset(): HTMLCanvasElement {

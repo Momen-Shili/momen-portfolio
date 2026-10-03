@@ -3,6 +3,11 @@ import "../styles/game.css";
 import { AudioEngine } from "../audio/engine";
 import { BootScene } from "../scenes/BootScene";
 import { WorldScene } from "../scenes/WorldScene";
+import {
+  getReduceEffectsSetting,
+  loadEffectsSetting,
+  onEffectsSettingChange,
+} from "../systems/effectsSettings";
 import { InputState } from "../systems/input";
 import { QUESTS } from "../systems/quests/definitions";
 import { QuestEngine } from "../systems/quests/engine";
@@ -15,21 +20,56 @@ import { el, isTouchDevice } from "../ui/dom";
 import { Hud } from "../ui/hud";
 import { hideLoading, setLoadingProgress } from "../ui/loading";
 import { PanelManager } from "../ui/panels";
+import { markBadgeEarned } from "../ui/questLog";
 import { showTitle } from "../ui/title";
 import { VirtualControls } from "../ui/virtualControls";
 import type { GameContext } from "./context";
+import { GlobalListenerTracker } from "./globalListeners";
 import { QuestDirector } from "./questDirector";
+
+/** Canvas size in device pixels for a CSS box, plus the zoom that displays it at CSS size. */
+export function deviceSize(host: HTMLElement): { width: number; height: number; zoom: number } {
+  const ratio = window.devicePixelRatio || 1;
+  const box = host.getBoundingClientRect();
+  return {
+    width: Math.max(1, Math.round(box.width * ratio)),
+    height: Math.max(1, Math.round(box.height * ratio)),
+    zoom: 1 / ratio,
+  };
+}
 
 export interface RunningGame {
   destroy(): void;
 }
 
+/**
+ * Builds the whole game inside `root`. Every window/document listener added while it runs is
+ * tracked and removed again on destroy (or if start-up fails), so leaving the game leaves no
+ * listeners, canvases, timers or audio behind.
+ */
 export function startGame(root: HTMLElement): RunningGame {
+  const tracker = new GlobalListenerTracker([window, document]);
+  tracker.start();
+  try {
+    return buildGame(root, tracker);
+  } catch (error) {
+    tracker.stop();
+    root.replaceChildren();
+    throw error;
+  }
+}
+
+function buildGame(root: HTMLElement, tracker: GlobalListenerTracker): RunningGame {
   const canvasHost = el("div", { class: "game-canvas" });
   const ui = el("div", { class: "game-ui" });
   root.replaceChildren(canvasHost, ui);
 
   const storage = createSafeStorage();
+  loadEffectsSetting(storage);
+  document.documentElement.classList.toggle("reduce-effects", getReduceEffectsSetting());
+  const startedAt = performance.now();
+  const dayTint = el("div", { class: "day-tint", "aria-hidden": "true" });
+  canvasHost.append(dayTint);
   const audio = new AudioEngine(storage);
   const quests = new QuestEngine(QUESTS, new ProgressStore(storage, QUESTS));
   const state = { title: true, panel: false, dialog: false, fishing: false };
@@ -57,6 +97,8 @@ export function startGame(root: HTMLElement): RunningGame {
     audio,
     quests,
     world: null,
+    dayTint,
+    clock: () => performance.now() - startedAt,
     isBlocked,
     setLoadingProgress,
     onWorldReady: () => {
@@ -140,8 +182,20 @@ export function startGame(root: HTMLElement): RunningGame {
       syncUi();
     },
   });
-  const director = new QuestDirector(quests, { dialog, panels }, () => ctx.world);
+  const director = new QuestDirector(quests, { dialog, panels, hud }, () => ctx.world);
   Object.assign(ctx, { panels, dialog, hud, director, fishing, minigameHud });
+
+  /** The "Reduce effects" setting applies to the CSS at once and to the world when the panel closes. */
+  let rebuildWorld = false;
+  const stopEffectsWatch = onEffectsSettingChange(() => {
+    document.documentElement.classList.toggle("reduce-effects", getReduceEffectsSetting());
+    rebuildWorld = true;
+  });
+  panels.onClosed(() => {
+    if (!rebuildWorld) return;
+    rebuildWorld = false;
+    ctx.world?.restartHere();
+  });
 
   /** Opens the celebration once the player is free (not mid-dialog or mid-panel). */
   let celebrationTimer = 0;
@@ -159,7 +213,12 @@ export function startGame(root: HTMLElement): RunningGame {
   const stopQuestUi = quests.subscribe((notes) => {
     refreshQuestUi();
     for (const note of notes) {
-      hud.showQuestToast(describeNotification(note));
+      hud.showQuestToast(
+        describeNotification(note),
+        4200,
+        note.type === "quest_done" ? "badge" : undefined,
+      );
+      if (note.type === "quest_done") markBadgeEarned(note.badge.id);
       if (note.type === "step" || note.type === "started") audio.play("quest");
       if (note.type === "quest_done") audio.play("complete");
       if (note.type === "all_done") celebrateSoon();
@@ -191,13 +250,25 @@ export function startGame(root: HTMLElement): RunningGame {
     pixelArt: true,
     roundPixels: true,
     banner: false,
-    scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
+    // Sized in device pixels and shown at CSS size (zoom = 1 / devicePixelRatio), so every art pixel
+    // lands on whole device pixels at 100%, 125%, 150% and 200% display scaling. See deviceSize().
+    scale: { mode: Phaser.Scale.NONE, ...deviceSize(canvasHost) },
     physics: { default: "arcade", arcade: { gravity: { x: 0, y: 0 } } },
     input: { keyboard: false, gamepad: false },
     // Phaser's own sound manager is off: all audio goes through AudioEngine.
     audio: { noAudio: true },
     scene: [new BootScene(ctx), new WorldScene(ctx)],
   });
+
+  /** Keeps the canvas matched to its box after window resizes, rotation and browser zoom. */
+  const onResize = (): void => {
+    const { width, height, zoom } = deviceSize(canvasHost);
+    game?.scale.setZoom(zoom);
+    game?.scale.resize(width, height);
+  };
+  const resizeObserver = new ResizeObserver(onResize);
+  resizeObserver.observe(canvasHost);
+  window.addEventListener("resize", onResize);
 
   if (import.meta.env.DEV) {
     (window as unknown as { __game: Phaser.Game; __audio: AudioEngine }).__game = game;
@@ -208,8 +279,12 @@ export function startGame(root: HTMLElement): RunningGame {
     destroy: () => {
       closeTitle?.();
       window.removeEventListener("keydown", onGlobalKey);
+      window.removeEventListener("resize", onResize);
+      resizeObserver.disconnect();
       stopQuestUi();
       stopAudioUi();
+      stopEffectsWatch();
+      document.documentElement.classList.remove("reduce-effects");
       window.clearTimeout(celebrationTimer);
       fishing.close();
       minigameHud.destroy();
@@ -221,6 +296,7 @@ export function startGame(root: HTMLElement): RunningGame {
       audio.destroy();
       game?.destroy(true);
       game = null;
+      tracker.stop();
       root.replaceChildren();
     },
   };

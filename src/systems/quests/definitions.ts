@@ -16,7 +16,7 @@ export const QUESTS: readonly QuestDef[] = [
       {
         id: "collect",
         text: "Find the three skill gems",
-        hint: "Look in quiet corners: west of the house, the far east edge and the north-east corner.",
+        hint: "Look for glints: west of the house outside, and tucked away inside the workshop and the library.",
         trigger: { type: "item_collected", distinct: "id", count: 3 },
       },
     ],
@@ -30,13 +30,13 @@ export const QUESTS: readonly QuestDef[] = [
     title: "Special delivery",
     giver: "clerk",
     blurb: "The post office has a parcel for the workshop.",
-    lockedHint: "Talk to the clerk outside the post office.",
+    lockedHint: "Talk to the clerk inside the post office.",
     unlock: { type: "npc_talked", where: { npc: "clerk" } },
     steps: [
       {
         id: "deliver",
-        text: "Deliver the parcel to the smith at the workshop",
-        hint: "Walk from the post office to the workshop and talk to the smith.",
+        text: "Deliver the parcel to the smith inside the workshop",
+        hint: "Carry the parcel from the post office to the workshop and talk to the smith.",
         trigger: { type: "parcel_delivered" },
       },
     ],
@@ -87,7 +87,7 @@ export const QUESTS: readonly QuestDef[] = [
     title: "Match the stack",
     giver: "reader",
     blurb: "The librarian has a four-round quiz about the projects.",
-    lockedHint: "Talk to the librarian outside the library.",
+    lockedHint: "Talk to the librarian inside the library.",
     unlock: { type: "npc_talked", where: { npc: "reader" } },
     steps: [
       {

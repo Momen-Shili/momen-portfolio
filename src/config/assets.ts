@@ -15,6 +15,8 @@ import {
   SMITH_PALETTE,
   drawCharacterSheet,
 } from "../world/art/characters";
+import * as effects from "../world/art/effects";
+import * as furniture from "../world/art/furniture";
 import * as props from "../world/art/props";
 import { drawTileset } from "../world/art/tiles";
 
@@ -58,6 +60,43 @@ export const ASSETS: readonly AssetSpec[] = [
   { key: "mailbox", draw: props.drawMailbox },
   { key: "anvil", draw: props.drawAnvil },
 
+  { key: "door", frame: { width: 16, height: 30 }, draw: furniture.drawDoorOverlay },
+  { key: "bed", draw: furniture.drawBed },
+  { key: "benches", frame: { width: 36, height: 26 }, draw: furniture.drawBenches },
+  { key: "toolwall", draw: furniture.drawToolWall },
+  { key: "blueprint", draw: furniture.drawBlueprint },
+  { key: "chalkboard", draw: furniture.drawChalkboard },
+  { key: "forge", frame: { width: 36, height: 36 }, draw: furniture.drawForge },
+  { key: "shelves", frame: { width: 34, height: 38 }, draw: furniture.drawShelves },
+  { key: "readingdesk", draw: furniture.drawReadingDesk },
+  { key: "globe", draw: furniture.drawGlobe },
+  { key: "ladder", draw: furniture.drawLadder },
+  { key: "candle", frame: { width: 10, height: 14 }, draw: furniture.drawCandle },
+  { key: "mailboxwall", draw: furniture.drawMailboxWall },
+  { key: "stampmachine", draw: furniture.drawStampMachine },
+  { key: "counter", draw: furniture.drawCounter },
+  { key: "conveyor", frame: { width: 72, height: 18 }, draw: furniture.drawConveyor },
+  { key: "parcel", draw: furniture.drawParcel },
+  { key: "writingdesk", draw: furniture.drawWritingDesk },
+  { key: "parcelstack", draw: furniture.drawParcelStack },
+  { key: "clock", frame: { width: 18, height: 18 }, draw: furniture.drawClock },
+  { key: "lamp-flicker", frame: { width: 12, height: 28 }, draw: furniture.drawLampFlicker },
+  { key: "mote", draw: furniture.drawMote },
+  { key: "cloud", frame: { width: 64, height: 30 }, draw: effects.drawClouds },
+  { key: "cloudshadow", draw: effects.drawCloudShadow },
+  { key: "bird", frame: { width: 14, height: 8 }, draw: effects.drawBird },
+  { key: "butterfly", frame: { width: 8, height: 8 }, draw: effects.drawButterfly },
+  { key: "leaf", draw: effects.drawLeaf },
+  { key: "droplet", draw: effects.drawDroplet },
+  { key: "ripple", draw: effects.drawRipple },
+  { key: "puff", draw: effects.drawPuff },
+  { key: "dust", draw: effects.drawDust },
+  { key: "glow", draw: effects.drawGlow },
+  { key: "tuft", draw: effects.drawTuft },
+  { key: "arrow", draw: effects.drawArrow },
+  { key: "exclaim", draw: effects.drawExclaim },
+  { key: "solid", draw: effects.drawSolid },
+  { key: "crate", draw: furniture.drawCrate },
   { key: "bookshelf", draw: props.drawBookshelf },
   // Framed portrait supplied by Momen (art-source/portrait.png, baked to 22x26 by hand).
   { key: "portrait", file: "art/portrait.png", draw: props.drawPortrait },

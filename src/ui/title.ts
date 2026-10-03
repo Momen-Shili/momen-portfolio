@@ -1,6 +1,6 @@
 import { PROFILE } from "../content/portfolio";
 import type { SoundChoice } from "../audio/settings";
-import { el, isTouchDevice } from "./dom";
+import { el, isTouchDevice, prefersReducedMotion } from "./dom";
 
 /**
  * "Press Start" screen shown over the idle town. Two real buttons, so the click that starts the
@@ -46,15 +46,43 @@ export function showTitle(
       ),
     ),
   );
+  // Slowly drifting sky behind the card; it follows the pointer a little for depth. Skipped when
+  // motion is reduced (the layers are not even created).
+  let stopParallax = (): void => undefined;
+  if (!prefersReducedMotion()) {
+    const sky = el(
+      "div",
+      { class: "title-sky", "aria-hidden": "true" },
+      el("div", { class: "sky-layer sky-stars" }),
+      el(
+        "div",
+        { class: "sky-layer sky-clouds-far" },
+        el("div", { class: "sky-cloud b" }),
+        el("div", { class: "sky-cloud c" }),
+      ),
+      el("div", { class: "sky-layer sky-clouds-near" }, el("div", { class: "sky-cloud a" })),
+    );
+    screen.prepend(sky);
+    const onMove = (e: PointerEvent): void => {
+      sky.style.setProperty("--px", String((e.clientX / window.innerWidth - 0.5) * 2));
+      sky.style.setProperty("--py", String((e.clientY / window.innerHeight - 0.5) * 2));
+    };
+    screen.addEventListener("pointermove", onMove);
+    stopParallax = () => screen.removeEventListener("pointermove", onMove);
+  }
   root.append(screen);
   // Silent is the default; if the visitor chose sound last time, that button gets focus instead.
   (options.remembered === "sound" ? sound : silent).focus({ preventScroll: true });
 
   const finish = (withSound: boolean): void => {
+    stopParallax();
     screen.remove();
     options.onStart(withSound);
   };
   silent.addEventListener("click", () => finish(false));
   sound.addEventListener("click", () => finish(true));
-  return () => screen.remove();
+  return () => {
+    stopParallax();
+    screen.remove();
+  };
 }

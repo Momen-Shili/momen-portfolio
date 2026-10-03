@@ -86,7 +86,7 @@
   letter-spacing: 0.06em;
   background: #ffd34e;
   box-shadow: 4px 4px 0 var(--wood-dark);
-  animation: blink 1.4s steps(2) infinite;
+  animation: pulse 1.8s ease-in-out infinite;
 }
 .btn-start:hover,
 .btn-start:focus-visible {
@@ -149,23 +149,6 @@
   border: 3px solid var(--wood-dark);
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
   transform: translateX(-50%);
-}
-.hud-toast {
-  position: absolute;
-  left: 50%;
-  top: 56px;
-  max-width: calc(100% - 32px);
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #fff8e4;
-  background: rgba(27, 20, 35, 0.92);
-  border: 2px solid #f6ecd4;
-  opacity: 0;
-  transform: translateX(-50%);
-  transition: opacity 0.2s;
-}
-.hud-toast.is-visible {
-  opacity: 1;
 }
 
 /* ---------- virtual controls ---------- */
@@ -730,8 +713,231 @@
 }
 
 @media (max-width: 560px) {
-  .quest-toasts,
-  .hud-toast {
+  .quest-toasts {
     top: 92px;
   }
+}
+
+/* Notches and rounded corners: keep controls inside the safe area. */
+.hud-top {
+  top: calc(8px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+}
+.minigame-hud {
+  top: calc(48px + env(safe-area-inset-top));
+  left: calc(8px + env(safe-area-inset-left));
+}
+/* No double-tap zoom on buttons or the game surface. */
+.game-ui button,
+.panel-backdrop {
+  touch-action: manipulation;
+}
+@media (max-width: 560px) {
+  .hud-top {
+    top: calc(6px + env(safe-area-inset-top));
+    right: calc(6px + env(safe-area-inset-right));
+  }
+}
+
+/* ---------- motion ---------- */
+
+.day-tint {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: #ffffff;
+  mix-blend-mode: multiply;
+  transition: background 0.5s linear;
+}
+
+@keyframes pulse {
+  50% {
+    transform: scale(1.05);
+  }
+}
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+}
+@keyframes panel-out {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(32px);
+  }
+}
+@keyframes badge-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.4) rotate(-6deg);
+  }
+  60% {
+    transform: scale(1.12) rotate(2deg);
+  }
+}
+@keyframes kbd-bounce {
+  50% {
+    transform: translateY(-3px);
+  }
+}
+@keyframes sparkle-sweep {
+  from {
+    background-position: -120% 0;
+  }
+  to {
+    background-position: 220% 0;
+  }
+}
+
+.panel-backdrop {
+  animation: fade-in 0.18s ease-out;
+}
+.panel {
+  animation: panel-in 0.2s cubic-bezier(0.2, 0.9, 0.3, 1);
+}
+.panel-backdrop.is-closing {
+  animation: fade-out 0.12s ease-in forwards;
+  pointer-events: none;
+}
+.panel-backdrop.is-closing .panel {
+  animation: panel-out 0.12s ease-in forwards;
+}
+.quest-toast {
+  animation: toast-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+.quest-toast.toast-badge {
+  background: linear-gradient(100deg, #ffe9a8 30%, #fff8d8 50%, #ffe9a8 70%) 0 0 / 220% 100%;
+  animation:
+    toast-in 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1),
+    sparkle-sweep 1.6s ease-out 0.3s 1;
+}
+.quest-meter::-webkit-progress-value {
+  transition: width 0.7s ease-out;
+}
+.quest-meter::-moz-progress-bar {
+  transition: width 0.7s ease-out;
+}
+.badge-chip.is-new {
+  animation: badge-pop 0.7s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.badge-chip.is-new::after {
+  content: " *";
+  font-weight: 800;
+  color: #b07a00;
+}
+.hud-prompt kbd {
+  animation: kbd-bounce 1s ease-in-out infinite;
+}
+
+/* ---------- title screen sky ---------- */
+
+.title-sky {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  --px: 0;
+  --py: 0;
+}
+.sky-layer {
+  position: absolute;
+  inset: -20px;
+  transition: transform 0.25s ease-out;
+}
+.sky-stars {
+  transform: translate(calc(var(--px) * 6px), calc(var(--py) * 4px));
+  background-image:
+    radial-gradient(2px 2px at 8% 12%, #fff8d8 50%, transparent 52%),
+    radial-gradient(2px 2px at 22% 30%, #fff8d8 50%, transparent 52%),
+    radial-gradient(1px 1px at 35% 8%, #fff8d8 50%, transparent 52%),
+    radial-gradient(2px 2px at 48% 22%, #fff8d8 50%, transparent 52%),
+    radial-gradient(1px 1px at 61% 10%, #fff8d8 50%, transparent 52%),
+    radial-gradient(2px 2px at 74% 28%, #fff8d8 50%, transparent 52%),
+    radial-gradient(1px 1px at 86% 14%, #fff8d8 50%, transparent 52%),
+    radial-gradient(2px 2px at 94% 34%, #fff8d8 50%, transparent 52%);
+  animation: stars-twinkle 5s ease-in-out infinite;
+}
+@keyframes stars-twinkle {
+  50% {
+    opacity: 0.45;
+  }
+}
+.sky-cloud {
+  position: absolute;
+  width: 96px;
+  height: 22px;
+  background: #ffffff;
+  box-shadow:
+    18px -10px 0 4px #ffffff,
+    44px -14px 0 0 #ffffff,
+    66px -6px 0 2px #ffffff;
+  opacity: 0.85;
+  animation: cloud-drift 70s linear infinite;
+}
+.sky-cloud.a {
+  top: 14%;
+  left: -140px;
+}
+.sky-cloud.b {
+  top: 30%;
+  left: -140px;
+  transform: scale(0.7);
+  animation-duration: 95s;
+  animation-delay: -40s;
+}
+.sky-cloud.c {
+  top: 8%;
+  left: -140px;
+  transform: scale(1.2);
+  animation-duration: 120s;
+  animation-delay: -70s;
+}
+@keyframes cloud-drift {
+  to {
+    left: 110%;
+  }
+}
+.sky-clouds-far {
+  transform: translate(calc(var(--px) * 12px), calc(var(--py) * 6px));
+}
+.sky-clouds-near {
+  transform: translate(calc(var(--px) * 24px), calc(var(--py) * 10px));
+}
+
+.reduce-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 4px 10px;
+}
+.reduce-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: #2e8b57;
+}
+.reduce-row label {
+  font-weight: 700;
+}
+.reduce-row p {
+  grid-column: 1 / -1;
+}
+.title-card {
+  position: relative;
 }

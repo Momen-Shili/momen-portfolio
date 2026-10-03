@@ -1,3 +1,5 @@
+import { effectsReduced, getReduceEffectsSetting } from "../systems/effectsSettings";
+
 export function el<K extends keyof HTMLElementTagNameMap>(
   tag: K,
   attrs: Record<string, string> = {},
@@ -10,6 +12,13 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   }
   node.append(...children);
   return node;
+}
+
+/** Project names may be right-to-left; <bdi> keeps their punctuation from jumping around. */
+export function bidiNames(names: readonly string[], joiner = " and "): Array<Node | string> {
+  return names
+    .flatMap((name, i) => [i > 0 ? joiner : "", el("bdi", {}, name)])
+    .filter((n) => n !== "");
 }
 
 let uid = 0;
@@ -27,8 +36,13 @@ export function focusableIn(root: HTMLElement): HTMLElement[] {
   );
 }
 
-export function prefersReducedMotion(): boolean {
+export function osPrefersReducedMotion(): boolean {
   return typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+/** True when the visitor asked for calmer visuals: the OS preference or the in-game setting. */
+export function prefersReducedMotion(): boolean {
+  return effectsReduced(osPrefersReducedMotion(), getReduceEffectsSetting());
 }
 
 export function isTouchDevice(): boolean {

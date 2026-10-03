@@ -5,8 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{{TITLE}}</title>
     <meta name="description" content="{{DESCRIPTION}}" />
-    <meta name="theme-color" content="#1b1423" />
-    <link rel="canonical" href="{{SITE_URL}}" />
+    <meta name="author" content="{{NAME}}" />
+    <meta name="robots" content="{{ROBOTS}}" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="theme-color" content="#f6ecd4" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#1b1423" media="(prefers-color-scheme: dark)" />
+    {{VERIFICATION}}
+    <link rel="canonical" href="{{SITE_URL}}/" />
+    <link rel="me" href="{{LINKEDIN}}" />
+    <link rel="me" href="{{GITHUB}}" />
     <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
@@ -15,34 +22,35 @@
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="{{NAME}}" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content="{{TITLE}}" />
     <meta property="og:description" content="{{DESCRIPTION}}" />
-    <meta property="og:url" content="{{SITE_URL}}" />
+    <meta property="og:url" content="{{SITE_URL}}/" />
     <meta property="og:image" content="{{OG_IMAGE}}" />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="Pixel-art town with the name {{NAME}}" />
+    <meta property="og:image:alt" content="{{OG_IMAGE_ALT}}" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="{{TITLE}}" />
     <meta name="twitter:description" content="{{DESCRIPTION}}" />
     <meta name="twitter:image" content="{{OG_IMAGE}}" />
+    <meta name="twitter:image:alt" content="{{OG_IMAGE_ALT}}" />
     <script type="application/ld+json">
       {{JSON_LD}}
     </script>
-    <script>
-      // Runs before first paint: pick game or plain mode so there is no flash of the wrong one.
-      (function () {
-        var h = document.documentElement;
-        h.classList.remove("no-js");
-        h.classList.add("js");
-        h.classList.add(/[?&]plain\b/.test(location.search) ? "mode-plain" : "mode-game");
-      })();
-    </script>
+    <script src="/early.js"></script>
   </head>
   <body>
-    <header class="top-bar">
+    <div class="top-bar" role="navigation" aria-label="Display mode">
       <a id="mode-toggle" class="skip-link" href="?plain=1">Skip game: view as plain page</a>
-    </header>
+    </div>
+    <noscript>
+      <p class="noscript-note">
+        This site is a pixel-art game, but all of its content is on this page. Scroll down to read
+        it, or write to <a href="mailto:{{EMAIL}}">{{EMAIL}}</a>.
+      </p>
+    </noscript>
     <p id="sr-status" class="sr-only" role="status" aria-live="polite"></p>
 
     <div id="game-root" role="region" aria-label="Interactive town portfolio"></div>
@@ -59,9 +67,20 @@
       <div class="loading-track"><div id="loading-fill" class="loading-fill"></div></div>
     </div>
 
-    <main id="plain" class="plain">
+    <div id="plain" class="plain">
       <!--FALLBACK-->
-    </main>
+    </div>
+
+    <!-- Static copy of the contact form so Netlify can detect it at deploy time. The real form is built
+         by src/ui/contactForm.ts and posts the same field names (checked by tests/seoBuild.test.ts). -->
+    <form name="contact" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="contact" />
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <textarea name="message"></textarea>
+      <input type="text" name="source" />
+      <input type="text" name="bot-field" />
+    </form>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

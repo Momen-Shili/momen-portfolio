@@ -48,6 +48,8 @@ export interface MapDef {
   zones: Zone[];
   spawns: Record<string, Spawn>;
   background: string;
+  /** Ambient effects: floating dust motes (count). Skipped for reduced motion. */
+  ambient?: { motes: number };
 }
 
 export function tileIndex(def: Pick<MapDef, "cols">, tx: number, ty: number): number {

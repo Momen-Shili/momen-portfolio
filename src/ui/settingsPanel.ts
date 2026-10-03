@@ -1,5 +1,6 @@
 import type { AudioEngine } from "../audio/engine";
-import { el, nextId } from "./dom";
+import { getReduceEffectsSetting, setReduceEffects } from "../systems/effectsSettings";
+import { el, nextId, osPrefersReducedMotion } from "./dom";
 
 /** Audio settings: mute toggle and separate music / effects volume sliders. */
 export function createSettings(audio: AudioEngine): { element: HTMLElement; focus: HTMLElement } {
@@ -40,6 +41,22 @@ export function createSettings(audio: AudioEngine): { element: HTMLElement; focu
   const test = el("button", { type: "button", class: "btn-ghost" }, "Play a test sound");
   test.addEventListener("click", () => audio.play("quest"));
 
+  const reduceId = nextId("reduce");
+  const reduce = el("input", { id: reduceId, type: "checkbox" });
+  reduce.checked = getReduceEffectsSetting() || osPrefersReducedMotion();
+  reduce.disabled = osPrefersReducedMotion();
+  reduce.addEventListener("change", () => setReduceEffects(reduce.checked));
+  const reduceNote = osPrefersReducedMotion()
+    ? "Your system asks for reduced motion, so effects are already reduced."
+    : "Calmer visuals: no drifting clouds, birds, swaying plants, day and evening tint, or screen animations. Applies when you close this window.";
+  const reduceRow = el(
+    "div",
+    { class: "reduce-row" },
+    reduce,
+    el("label", { for: reduceId }, "Reduce effects"),
+    el("p", { class: "quiz-note" }, reduceNote),
+  );
+
   element.append(
     el(
       "p",
@@ -51,6 +68,7 @@ export function createSettings(audio: AudioEngine): { element: HTMLElement; focu
     slider("Effects volume", audio.settings.sfxVolume, (v) => audio.setSfxVolume(v)),
     test,
     el("p", { class: "quiz-note" }, "Press M at any time to mute or unmute."),
+    reduceRow,
   );
   return { element, focus: toggle };
 }

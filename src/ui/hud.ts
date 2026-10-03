@@ -12,12 +12,10 @@ export interface HudHandlers {
 export class Hud {
   private readonly prompt: HTMLButtonElement;
   private readonly promptText: HTMLElement;
-  private readonly toast: HTMLElement;
   private readonly questToasts: HTMLElement;
   private readonly soundBtn: HTMLButtonElement;
   private readonly questBtn: HTMLButtonElement;
   private readonly element: HTMLElement;
-  private toastTimer = 0;
   private readonly questTimers = new Set<number>();
   private currentPrompt: string | null = null;
 
@@ -26,7 +24,6 @@ export class Hud {
     this.promptText = el("span", { class: "hud-prompt-text" });
     this.prompt = el("button", { type: "button", class: "hud-prompt" }, key, this.promptText);
     this.prompt.hidden = true;
-    this.toast = el("div", { class: "hud-toast", role: "status", "aria-live": "polite" });
     this.questToasts = el("div", { class: "quest-toasts", role: "status", "aria-live": "polite" });
 
     this.soundBtn = el("button", { type: "button", class: "hud-btn" });
@@ -53,7 +50,6 @@ export class Hud {
       { class: "hud" },
       el("div", { class: "hud-top" }, this.questBtn, this.soundBtn, settings, help),
       this.prompt,
-      this.toast,
       this.questToasts,
     );
     root.append(this.element);
@@ -89,16 +85,18 @@ export class Hud {
     this.promptText.textContent = text ?? "";
   }
 
+  /** General short message. Shares one stack with quest toasts so they never overlap. */
   showToast(message: string, ms = 2600): void {
-    window.clearTimeout(this.toastTimer);
-    this.toast.textContent = message;
-    this.toast.classList.add("is-visible");
-    this.toastTimer = window.setTimeout(() => this.toast.classList.remove("is-visible"), ms);
+    this.showQuestToast(message, ms);
   }
 
   /** Small non-blocking message for quest progress. Several can stack; each fades on its own. */
-  showQuestToast(message: string, ms = 4200): void {
-    const item = el("p", { class: "quest-toast" }, message);
+  showQuestToast(message: string, ms = 4200, variant?: "badge"): void {
+    const item = el(
+      "p",
+      { class: variant === "badge" ? "quest-toast toast-badge" : "quest-toast" },
+      message,
+    );
     this.questToasts.append(item);
     while (this.questToasts.children.length > 3) this.questToasts.firstElementChild?.remove();
     const timer = window.setTimeout(() => {
@@ -113,7 +111,6 @@ export class Hud {
   }
 
   destroy(): void {
-    window.clearTimeout(this.toastTimer);
     for (const timer of this.questTimers) window.clearTimeout(timer);
     this.questTimers.clear();
     this.element.remove();

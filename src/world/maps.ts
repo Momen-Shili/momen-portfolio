@@ -1,11 +1,20 @@
-import { buildHouse } from "./houseMap";
+import { buildHouse } from "./interiors/houseInterior";
+import { buildLibrary } from "./interiors/libraryInterior";
+import { buildPostOffice } from "./interiors/postInterior";
+import { buildWorkshop } from "./interiors/workshopInterior";
 import type { MapDef } from "./mapTypes";
 import { buildTown } from "./townMap";
 
 const builders: Record<string, () => MapDef> = {
   town: buildTown,
   house: buildHouse,
+  workshop: buildWorkshop,
+  library: buildLibrary,
+  post: buildPostOffice,
 };
+
+/** Every map the game can load. Tests walk this list. */
+export const MAP_IDS: readonly string[] = Object.keys(builders);
 
 const cache = new Map<string, MapDef>();
 
