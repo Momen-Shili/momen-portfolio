@@ -117,3 +117,60 @@ describe("pixel font", () => {
     expect(textWidth("POST OFFICE")).toBe(11 * 4 - 1);
   });
 });
+
+describe("no trapped player, no confusing zones", () => {
+  const overlapArea = (a: MapDef["zones"][number], b: MapDef["zones"][number]): number => {
+    const w = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+    const h = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+    return w > 0 && h > 0 ? w * h : 0;
+  };
+
+  it.each(["town", "house"])("lets the player walk between every spawn of %s", (id) => {
+    const map = getMap(id);
+    const spawns = Object.entries(map.spawns);
+    const first = spawns[0];
+    if (!first) throw new Error("no spawns");
+    const region = reachable(map, first[1].x, first[1].y - 2);
+    for (const [name, s] of spawns) {
+      const idx = Math.floor((s.y - 2) / TILE) * map.cols + Math.floor(s.x / TILE);
+      expect(region.has(idx), `${name} is in a different region`).toBe(true);
+    }
+  });
+
+  it.each(["town", "house"])(
+    "keeps the reachable area large (no tiny pockets as the start region) in %s",
+    (id) => {
+      const map = getMap(id);
+      const start = Object.values(map.spawns)[0];
+      if (!start) throw new Error("no spawns");
+      const region = reachable(map, start.x, start.y - 2);
+      const walkable = map.blocked.filter((b) => !b).length;
+      expect(region.size / walkable).toBeGreaterThan(0.9);
+    },
+  );
+
+  it.each(["town", "house"])("avoids heavily overlapping interaction zones in %s", (id) => {
+    const zones = getMap(id).zones;
+    for (let i = 0; i < zones.length; i++) {
+      for (let j = i + 1; j < zones.length; j++) {
+        const a = zones[i];
+        const b = zones[j];
+        if (!a || !b) continue;
+        const smaller = Math.min(a.w * a.h, b.w * b.h);
+        expect(overlapArea(a, b) / smaller, `${a.id} vs ${b.id}`).toBeLessThan(0.15);
+      }
+    }
+  });
+
+  it("never places a zone or spawn outside the map", () => {
+    for (const id of ["town", "house"]) {
+      const map = getMap(id);
+      for (const z of map.zones) {
+        expect(z.x).toBeGreaterThanOrEqual(0);
+        expect(z.y).toBeGreaterThanOrEqual(0);
+        expect(z.x + z.w).toBeLessThanOrEqual(map.cols * TILE);
+        expect(z.y + z.h).toBeLessThanOrEqual(map.rows * TILE);
+      }
+    }
+  });
+});

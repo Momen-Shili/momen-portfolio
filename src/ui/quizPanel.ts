@@ -46,9 +46,14 @@ export function createQuiz(
           if (b.textContent === round.answer) b.classList.add("is-correct");
         }
         if (!right) button.classList.add("is-wrong");
-        feedback.textContent = right
-          ? "Correct!"
-          : `Not quite. ${round.project} uses ${round.answer}. All its tags: ${round.projectTags.join(", ")}.`;
+        if (right) feedback.textContent = "Correct!";
+        else {
+          feedback.replaceChildren(
+            "Not quite. ",
+            el("bdi", {}, round.project),
+            ` uses ${round.answer}. All its tags: ${round.projectTags.join(", ")}.`,
+          );
+        }
         next.hidden = false;
         next.focus();
         if (index === rounds.length - 1) onDone(correct, rounds.length);

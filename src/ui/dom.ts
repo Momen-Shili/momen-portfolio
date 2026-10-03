@@ -12,6 +12,13 @@ export function el<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
+/** Project names may be right-to-left; <bdi> keeps their punctuation from jumping around. */
+export function bidiNames(names: readonly string[], joiner = " and "): Array<Node | string> {
+  return names
+    .flatMap((name, i) => [i > 0 ? joiner : "", el("bdi", {}, name)])
+    .filter((n) => n !== "");
+}
+
 let uid = 0;
 export function nextId(prefix: string): string {
   uid += 1;

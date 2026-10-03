@@ -49,7 +49,12 @@ function highlightProject(root: HTMLElement, name: string): void {
   const card = cards.find((c) => c.querySelector(".project-name")?.textContent === name);
   if (!card) return;
   card.classList.add("is-featured");
-  const banner = el("p", { class: "featured-banner", role: "status" }, `Special delivery: ${name}`);
+  const banner = el(
+    "p",
+    { class: "featured-banner", role: "status" },
+    "Special delivery: ",
+    el("bdi", {}, name),
+  );
   root.prepend(banner);
   card.setAttribute("data-featured", "true");
   window.requestAnimationFrame(() => card.scrollIntoView({ block: "nearest" }));

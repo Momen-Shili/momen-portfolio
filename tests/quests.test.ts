@@ -232,6 +232,22 @@ describe("progress storage", () => {
     expect(state.celebrated).toBe(false);
   });
 
+  it("restores the badge and cosmetic of a completed quest even when the saved lists are damaged", () => {
+    const state = parseState(
+      {
+        version: 1,
+        quests: { "skill-gems": { status: "done", step: 1, count: 0, seen: [] } },
+        badges: "nope",
+        cosmetics: null,
+        items: { a: 1 },
+      },
+      QUESTS,
+    );
+    expect(state.badges).toEqual(["gem-hunter"]);
+    expect(state.cosmetics).toEqual(["gem-trail"]);
+    expect(state.items).toEqual([]);
+  });
+
   it("keeps a valid completed quest and its reward", () => {
     const state = parseState(
       {

@@ -1,3 +1,5 @@
+import { clampFrame } from "./timing";
+
 export const IDLE_MS = 10_000;
 
 /** Fires once after the player stands still inside a zone for `thresholdMs`. */
@@ -15,7 +17,7 @@ export class IdleTracker {
       return false;
     }
     if (this.fired) return false;
-    this.elapsed += dtMs;
+    this.elapsed += clampFrame(dtMs);
     if (this.elapsed < this.thresholdMs) return false;
     this.fired = true;
     return true;

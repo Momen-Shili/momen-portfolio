@@ -18,3 +18,21 @@ export function hideLoading(): void {
   const bar = document.getElementById("loading");
   if (bar) bar.hidden = true;
 }
+
+/** A line under the progress bar, used when loading is slow. Pass null to remove it. */
+export function setLoadingNote(text: string | null): void {
+  const bar = document.getElementById("loading");
+  if (!bar) return;
+  let note = document.getElementById("loading-note");
+  if (text === null) {
+    note?.remove();
+    return;
+  }
+  if (!note) {
+    note = document.createElement("p");
+    note.id = "loading-note";
+    note.className = "loading-note";
+    bar.append(note);
+  }
+  note.textContent = text;
+}

@@ -5,8 +5,9 @@ import type { GameContext } from "../game/context";
 import { findInteraction, type Zone } from "../systems/interaction";
 import { funFactLine } from "../systems/quests/helpers";
 import { IdleTracker } from "../systems/quests/minigames/idle";
+import { clampFrame } from "../systems/quests/minigames/timing";
 import { prefersReducedMotion } from "../ui/dom";
-import type { Facing, MapDef, NpcDef } from "../world/mapTypes";
+import type { Facing, MapDef, NpcDef, PropDef } from "../world/mapTypes";
 import { getMap } from "../world/maps";
 import { PLAZA_PX } from "../world/townMap";
 import { T, TILE } from "../world/tiles";
@@ -38,6 +39,7 @@ export class WorldScene extends Phaser.Scene {
   private hat: Phaser.GameObjects.Image | null = null;
   private trailMs = 0;
   private stepDistance = 0;
+  private stopQuestWatch: (() => void) | null = null;
   private readonly reduced = prefersReducedMotion();
 
   constructor(private readonly ctx: GameContext) {
@@ -67,6 +69,7 @@ export class WorldScene extends Phaser.Scene {
     this.buildColliders();
     this.setupCamera();
 
+    this.stopQuestWatch = this.ctx.quests.subscribe(() => this.syncQuestVisuals());
     this.ctx.audio.setScene(this.mapDef.id === "house" ? "interior" : "town");
     this.ctx.world = {
       teleport: (target) => this.teleport(target),
@@ -74,6 +77,8 @@ export class WorldScene extends Phaser.Scene {
     };
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
       this.scale.off("resize", this.applyCamera, this);
+      this.stopQuestWatch?.();
+      this.stopQuestWatch = null;
       this.bugHunt?.destroy(false);
       this.bugHunt = null;
       this.ctx.world = null;
@@ -83,7 +88,8 @@ export class WorldScene extends Phaser.Scene {
     if (this.firstRun) this.ctx.onWorldReady();
   }
 
-  update(_time: number, delta: number): void {
+  update(_time: number, rawDelta: number): void {
+    const delta = clampFrame(rawDelta);
     if (this.transitioning) return;
     const body = this.player.body as Phaser.Physics.Arcade.Body;
 
@@ -141,14 +147,16 @@ export class WorldScene extends Phaser.Scene {
   }
 
   private buildProps(): void {
-    for (const p of this.mapDef.props) {
-      if (p.item && this.ctx.quests.hasItem(p.item)) continue;
-      const sprite = this.add.sprite(p.x, p.y, p.texture, p.frame ?? 0);
-      if (p.item) this.itemSprites.set(p.item, sprite);
-      sprite.setOrigin(p.originX ?? 0.5, 1);
-      sprite.setDepth(p.flat ? -50 : p.y);
-      if (p.anim && !this.reduced) sprite.play(`loop-${p.texture}`);
-    }
+    for (const p of this.mapDef.props) this.addProp(p);
+  }
+
+  private addProp(p: PropDef): void {
+    if (p.item && (this.ctx.quests.hasItem(p.item) || this.itemSprites.has(p.item))) return;
+    const sprite = this.add.sprite(p.x, p.y, p.texture, p.frame ?? 0);
+    if (p.item) this.itemSprites.set(p.item, sprite);
+    sprite.setOrigin(p.originX ?? 0.5, 1);
+    sprite.setDepth(p.flat ? -50 : p.y);
+    if (p.anim && !this.reduced) sprite.play(`loop-${p.texture}`);
   }
 
   private buildNpcs(): void {
@@ -323,6 +331,16 @@ export class WorldScene extends Phaser.Scene {
       duration: 900,
       onComplete: () => gem.destroy(),
     });
+  }
+
+  /** Keeps the hat and the collectible gems in step with the quest state, including after a reset. */
+  private syncQuestVisuals(): void {
+    if (!this.ctx.quests.state.cosmetics.includes("fishing-hat") && this.hat) {
+      this.hat.destroy();
+      this.hat = null;
+    }
+    for (const p of this.mapDef.props) if (p.item) this.addProp(p);
+    this.refreshCollectibles();
   }
 
   // ---- collectibles ----

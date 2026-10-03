@@ -150,23 +150,6 @@
   box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.35);
   transform: translateX(-50%);
 }
-.hud-toast {
-  position: absolute;
-  left: 50%;
-  top: 56px;
-  max-width: calc(100% - 32px);
-  padding: 8px 14px;
-  font-size: 14px;
-  color: #fff8e4;
-  background: rgba(27, 20, 35, 0.92);
-  border: 2px solid #f6ecd4;
-  opacity: 0;
-  transform: translateX(-50%);
-  transition: opacity 0.2s;
-}
-.hud-toast.is-visible {
-  opacity: 1;
-}
 
 /* ---------- virtual controls ---------- */
 
@@ -730,8 +713,28 @@
 }
 
 @media (max-width: 560px) {
-  .quest-toasts,
-  .hud-toast {
+  .quest-toasts {
     top: 92px;
+  }
+}
+
+/* Notches and rounded corners: keep controls inside the safe area. */
+.hud-top {
+  top: calc(8px + env(safe-area-inset-top));
+  right: calc(8px + env(safe-area-inset-right));
+}
+.minigame-hud {
+  top: calc(48px + env(safe-area-inset-top));
+  left: calc(8px + env(safe-area-inset-left));
+}
+/* No double-tap zoom on buttons or the game surface. */
+.game-ui button,
+.panel-backdrop {
+  touch-action: manipulation;
+}
+@media (max-width: 560px) {
+  .hud-top {
+    top: calc(6px + env(safe-area-inset-top));
+    right: calc(6px + env(safe-area-inset-right));
   }
 }

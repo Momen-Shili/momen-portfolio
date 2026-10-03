@@ -1,19 +1,19 @@
+import { JoystickModel } from "../systems/joystick";
 import type { InputState } from "../systems/input";
 import { el } from "./dom";
-
-const RADIUS = 44;
 
 /** On-screen joystick and action button for touch devices. */
 export class VirtualControls {
   private readonly element: HTMLElement;
-  private activePointer: number | null = null;
+  private readonly model = new JoystickModel();
+  private readonly knob: HTMLElement;
 
   constructor(
     root: HTMLElement,
     private readonly input: InputState,
   ) {
-    const knob = el("div", { class: "joy-knob" });
-    const base = el("div", { class: "joy-base", "aria-hidden": "true" }, knob);
+    this.knob = el("div", { class: "joy-knob" });
+    const base = el("div", { class: "joy-base", "aria-hidden": "true" }, this.knob);
     const action = el(
       "button",
       { type: "button", class: "action-btn", "aria-label": "Interact" },
@@ -22,42 +22,31 @@ export class VirtualControls {
     this.element = el("div", { class: "virtual-controls" }, base, action);
     root.append(this.element);
 
-    const update = (e: PointerEvent): void => {
+    const offset = (e: PointerEvent): [number, number] => {
       const rect = base.getBoundingClientRect();
-      const dx = e.clientX - (rect.left + rect.width / 2);
-      const dy = e.clientY - (rect.top + rect.height / 2);
-      const len = Math.hypot(dx, dy);
-      const k = len > RADIUS ? RADIUS / len : 1;
-      const x = (dx * k) / RADIUS;
-      const y = (dy * k) / RADIUS;
-      knob.style.transform = `translate(${x * RADIUS}px, ${y * RADIUS}px)`;
-      // Dead zone so a resting thumb does not drift.
-      const magnitude = Math.hypot(x, y);
-      this.input.setVirtualAxis(magnitude < 0.22 ? 0 : x, magnitude < 0.22 ? 0 : y);
-    };
-    const release = (): void => {
-      this.activePointer = null;
-      knob.style.transform = "translate(0, 0)";
-      this.input.setVirtualAxis(0, 0);
+      return [e.clientX - (rect.left + rect.width / 2), e.clientY - (rect.top + rect.height / 2)];
     };
 
     base.addEventListener("pointerdown", (e) => {
-      if (this.activePointer !== null) return;
-      this.activePointer = e.pointerId;
+      if (!this.model.press(e.pointerId, ...offset(e))) return;
       try {
         base.setPointerCapture(e.pointerId);
       } catch {
-        // Pointer capture is an optimisation; dragging still works without it.
+        // Capture is an optimisation; the window-level listeners below end the drag anyway.
       }
-      update(e);
+      this.apply();
     });
     base.addEventListener("pointermove", (e) => {
-      if (e.pointerId === this.activePointer) update(e);
+      this.model.move(e.pointerId, ...offset(e));
+      this.apply();
     });
-    base.addEventListener("pointerup", (e) => {
-      if (e.pointerId === this.activePointer) release();
-    });
-    base.addEventListener("pointercancel", release);
+    // The finger can lift anywhere (even outside the stick) or the browser can take the pointer
+    // away, so every ending is listened for on the window as well.
+    window.addEventListener("pointerup", this.onEnd);
+    window.addEventListener("pointercancel", this.onEnd);
+    base.addEventListener("lostpointercapture", this.onEnd);
+    window.addEventListener("blur", this.releaseAll);
+    document.addEventListener("visibilitychange", this.releaseAll);
 
     action.addEventListener("pointerdown", (e) => {
       e.preventDefault();
@@ -69,11 +58,33 @@ export class VirtualControls {
     });
   }
 
+  private apply(): void {
+    const { axis, knob } = this.model;
+    this.knob.style.transform = `translate(${knob.x}px, ${knob.y}px)`;
+    this.input.setVirtualAxis(axis.x, axis.y);
+  }
+
+  private readonly onEnd = (e: PointerEvent): void => {
+    this.model.release(e.pointerId);
+    this.apply();
+  };
+
+  private readonly releaseAll = (): void => {
+    this.model.release();
+    this.apply();
+  };
+
+  /** Hiding the controls (a panel opened) must also end any drag in progress. */
   setVisible(visible: boolean): void {
+    if (!visible) this.releaseAll();
     this.element.hidden = !visible;
   }
 
   destroy(): void {
+    window.removeEventListener("pointerup", this.onEnd);
+    window.removeEventListener("pointercancel", this.onEnd);
+    window.removeEventListener("blur", this.releaseAll);
+    document.removeEventListener("visibilitychange", this.releaseAll);
     this.element.remove();
   }
 }

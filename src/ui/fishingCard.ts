@@ -1,5 +1,5 @@
 import { FishingSession, type Fish, type FishingResult } from "../systems/quests/minigames/fishing";
-import { el } from "./dom";
+import { bidiNames, el } from "./dom";
 
 export interface FishingHandlers {
   /** Tags already caught for the quest, so new catches are favoured. */
@@ -124,7 +124,11 @@ export class FishingCard {
     this.action.textContent = "Cast again";
     if (result.kind === "caught") {
       const { tag, projects } = result.fish;
-      this.status.textContent = `You caught a ${tag} fish! It belongs to ${projects.join(" and ")}.`;
+      this.status.replaceChildren(
+        `You caught a ${tag} fish! It belongs to `,
+        ...bidiNames(projects),
+        ".",
+      );
       this.handlers.onCatch(result.fish);
     } else {
       this.status.textContent = "It got away! Cast again whenever you like.";

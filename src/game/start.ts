@@ -18,13 +18,42 @@ import { PanelManager } from "../ui/panels";
 import { showTitle } from "../ui/title";
 import { VirtualControls } from "../ui/virtualControls";
 import type { GameContext } from "./context";
+import { GlobalListenerTracker } from "./globalListeners";
 import { QuestDirector } from "./questDirector";
+
+/** Canvas size in device pixels for a CSS box, plus the zoom that displays it at CSS size. */
+export function deviceSize(host: HTMLElement): { width: number; height: number; zoom: number } {
+  const ratio = window.devicePixelRatio || 1;
+  const box = host.getBoundingClientRect();
+  return {
+    width: Math.max(1, Math.round(box.width * ratio)),
+    height: Math.max(1, Math.round(box.height * ratio)),
+    zoom: 1 / ratio,
+  };
+}
 
 export interface RunningGame {
   destroy(): void;
 }
 
+/**
+ * Builds the whole game inside `root`. Every window/document listener added while it runs is
+ * tracked and removed again on destroy (or if start-up fails), so leaving the game leaves no
+ * listeners, canvases, timers or audio behind.
+ */
 export function startGame(root: HTMLElement): RunningGame {
+  const tracker = new GlobalListenerTracker([window, document]);
+  tracker.start();
+  try {
+    return buildGame(root, tracker);
+  } catch (error) {
+    tracker.stop();
+    root.replaceChildren();
+    throw error;
+  }
+}
+
+function buildGame(root: HTMLElement, tracker: GlobalListenerTracker): RunningGame {
   const canvasHost = el("div", { class: "game-canvas" });
   const ui = el("div", { class: "game-ui" });
   root.replaceChildren(canvasHost, ui);
@@ -191,13 +220,25 @@ export function startGame(root: HTMLElement): RunningGame {
     pixelArt: true,
     roundPixels: true,
     banner: false,
-    scale: { mode: Phaser.Scale.RESIZE, width: "100%", height: "100%" },
+    // Sized in device pixels and shown at CSS size (zoom = 1 / devicePixelRatio), so every art pixel
+    // lands on whole device pixels at 100%, 125%, 150% and 200% display scaling. See deviceSize().
+    scale: { mode: Phaser.Scale.NONE, ...deviceSize(canvasHost) },
     physics: { default: "arcade", arcade: { gravity: { x: 0, y: 0 } } },
     input: { keyboard: false, gamepad: false },
     // Phaser's own sound manager is off: all audio goes through AudioEngine.
     audio: { noAudio: true },
     scene: [new BootScene(ctx), new WorldScene(ctx)],
   });
+
+  /** Keeps the canvas matched to its box after window resizes, rotation and browser zoom. */
+  const onResize = (): void => {
+    const { width, height, zoom } = deviceSize(canvasHost);
+    game?.scale.setZoom(zoom);
+    game?.scale.resize(width, height);
+  };
+  const resizeObserver = new ResizeObserver(onResize);
+  resizeObserver.observe(canvasHost);
+  window.addEventListener("resize", onResize);
 
   if (import.meta.env.DEV) {
     (window as unknown as { __game: Phaser.Game; __audio: AudioEngine }).__game = game;
@@ -208,6 +249,8 @@ export function startGame(root: HTMLElement): RunningGame {
     destroy: () => {
       closeTitle?.();
       window.removeEventListener("keydown", onGlobalKey);
+      window.removeEventListener("resize", onResize);
+      resizeObserver.disconnect();
       stopQuestUi();
       stopAudioUi();
       window.clearTimeout(celebrationTimer);
@@ -221,6 +264,7 @@ export function startGame(root: HTMLElement): RunningGame {
       audio.destroy();
       game?.destroy(true);
       game = null;
+      tracker.stop();
       root.replaceChildren();
     },
   };

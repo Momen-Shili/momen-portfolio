@@ -2,7 +2,7 @@ import "./styles/main.css";
 import type { RunningGame } from "./game/start";
 import { installCopyHandler } from "./ui/clipboard";
 import { createContactForm } from "./ui/contactForm";
-import { hideLoading, setLoadingProgress, showLoading } from "./ui/loading";
+import { hideLoading, setLoadingNote, setLoadingProgress, showLoading } from "./ui/loading";
 
 type Mode = "game" | "plain";
 
@@ -27,10 +27,41 @@ function setUrl(mode: Mode): void {
   window.history.replaceState(null, "", url);
 }
 
+const SLOW_LOAD_MS = 8000;
+
+/** Explains why the plain page is showing after a failed start, with a way to try again. */
+function showLoadError(): void {
+  clearLoadError();
+  const box = document.createElement("div");
+  box.id = "load-error";
+  box.className = "load-error";
+  box.setAttribute("role", "alert");
+  const retry = document.createElement("button");
+  retry.type = "button";
+  retry.className = "btn-primary";
+  retry.textContent = "Try the game again";
+  retry.addEventListener("click", () => applyMode("game"));
+  box.append(
+    "The game could not be loaded, which usually means a slow or interrupted connection. " +
+      "Everything is available on this page instead. ",
+    retry,
+  );
+  plain.prepend(box);
+}
+
+function clearLoadError(): void {
+  document.getElementById("load-error")?.remove();
+}
+
 async function enterGame(): Promise<void> {
   if (running || starting) return;
   starting = true;
+  clearLoadError();
   showLoading();
+  const slowTimer = window.setTimeout(
+    () => setLoadingNote("Still loading. You can skip to the plain page at any time."),
+    SLOW_LOAD_MS,
+  );
   try {
     // Phaser is the heavy part of the bundle, so the plain page never downloads it.
     const { startGame } = await import("./game/start");
@@ -38,9 +69,11 @@ async function enterGame(): Promise<void> {
     running = startGame(gameRoot);
   } catch (error) {
     console.error("The game failed to start, showing the plain page instead.", error);
-    hideLoading();
     applyMode("plain");
+    showLoadError();
   } finally {
+    window.clearTimeout(slowTimer);
+    setLoadingNote(null);
     starting = false;
   }
 }
