@@ -19,15 +19,16 @@ npm run dev        # http://localhost:5173
 
 Bun works too (`bun install`, `bun run dev`) because every script is a plain package script.
 
-| Script              | What it does                                        |
-| ------------------- | --------------------------------------------------- |
-| `npm run dev`       | Vite dev server                                     |
-| `npm run build`     | Type-check, then production build into `dist/`      |
-| `npm run preview`   | Serve `dist/` locally                               |
-| `npm run lint`      | ESLint                                              |
-| `npm run typecheck` | `tsc --noEmit` (strict)                             |
-| `npm run test`      | Vitest (parser, dialog, zones, input, map, content) |
-| `npm run og`        | Regenerate `public/og-image.png` (needs Node 22.6+) |
+| Script              | What it does                                              |
+| ------------------- | --------------------------------------------------------- |
+| `npm run dev`       | Vite dev server                                           |
+| `npm run build`     | Type-check, then production build into `dist/`            |
+| `npm run preview`   | Serve `dist/` locally                                     |
+| `npm run lint`      | ESLint                                                    |
+| `npm run typecheck` | `tsc --noEmit` (strict)                                   |
+| `npm run test`      | Vitest (parser, dialog, zones, input, map, content)       |
+| `npm run og`        | Regenerate `public/og-image.png` (needs Node 22.6+)       |
+| `npm run icons`     | Regenerate the favicon set from `art-source/portrait.png` |
 
 ## Controls
 
@@ -153,7 +154,34 @@ To use a real recording, set `file` for a track in `src/config/audio.ts`
 (for example `{ town: { file: "audio/town.ogg" } }`, file under `public/audio/`). It loops (the title
 and victory tracks play once) and the generated version is the fallback if the file fails to load.
 
-## Deploy to momenshili.app
+## Deploy to Netlify in 3 minutes
+
+The repo already contains `netlify.toml` (build command, publish folder, Node 22, cache and security
+headers), so Netlify detects everything.
+
+1. Sign in at [app.netlify.com](https://app.netlify.com) and click **Add new site -> Import an existing project**.
+2. Choose **GitHub**, authorise Netlify if asked, and pick the `momen-os-portfolio` repository
+   (for a private repo, allow Netlify access to it when GitHub asks).
+3. The settings are filled in from `netlify.toml` (build command `npm run build`, publish directory
+   `dist`). Leave the branch as `main` and click **Deploy**.
+4. When it finishes you get a `*.netlify.app` URL. Every push to `main` redeploys automatically.
+   Branch deploys for `dev` can be switched on under **Site configuration -> Build & deploy ->
+   Branches and deploy contexts** to preview work in progress.
+
+### Custom domain (momenshili.app)
+
+1. **Domain management -> Add a domain** and enter `momenshili.app`.
+2. Easiest: choose **Use Netlify DNS** and set the nameservers Netlify shows at your registrar.
+3. Or keep your registrar's DNS and add the records Netlify displays, normally:
+   - `A` record for `momenshili.app` pointing to Netlify's load-balancer IP (shown in the dashboard)
+   - `CNAME` record for `www` pointing to `<your-site>.netlify.app`
+4. Netlify issues the HTTPS certificate automatically once DNS resolves. Set the primary domain to
+   `momenshili.app` so `www` redirects to it.
+
+Other hosts also work (Vercel config in `vercel.json`, GitHub Pages via `public/CNAME`, Cloudflare
+Pages via `public/_headers`). The old "Deploy to momenshili.app" notes below still apply to them.
+
+## Other static hosts
 
 `npm run build` produces a static `dist/` folder. Any static host works:
 

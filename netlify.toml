@@ -2,13 +2,29 @@
   command = "npm run build"
   publish = "dist"
 
+[build.environment]
+  # Vite 8 needs Node 20.19+ or 22.12+. 22 matches CI.
+  NODE_VERSION = "22"
+
+# Hashed build output never changes, so it can be cached for a year.
 [[headers]]
   for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=31536000, immutable"
+
+# Unhashed static files (portraits, icons) must be able to change.
+[[headers]]
+  for = "/art/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
 
 [[headers]]
   for = "/*"
   [headers.values]
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "DENY"
+    # The game needs audio output only. mailto: links are plain navigation and are unaffected.
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+# No redirects: the site is a single page (mode is chosen with ?plain=1), so there are no client routes.
