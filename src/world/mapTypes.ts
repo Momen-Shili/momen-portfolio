@@ -14,6 +14,8 @@ export interface PropDef {
   flat?: boolean;
   /** Pivot X as a fraction of the sprite width (defaults to 0.5). */
   originX?: number;
+  /** Collectible id: the sprite is hidden once the player owns this item. */
+  item?: string;
 }
 
 export interface NpcDef {

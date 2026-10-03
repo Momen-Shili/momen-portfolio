@@ -8,14 +8,23 @@ export interface Palette {
   shoes: string;
   longHair?: boolean;
   apron?: string;
+  /** Wider, curly hair outline. */
+  curly?: boolean;
+  glasses?: string;
+  /** White shirt collar and a tie, drawn on the front view. */
+  tie?: { collar: string; color: string };
 }
 
+/** Matches the character sheet in art-source/: curly brown hair, glasses, navy suit, blue tie. */
 export const PLAYER_PALETTE: Palette = {
-  skin: "#f2c294",
-  hair: "#3b2a20",
-  shirt: "#e4572e",
-  pants: "#2d3a6b",
-  shoes: "#2a2020",
+  skin: "#eea965",
+  hair: "#6b4226",
+  shirt: "#2e3b50",
+  pants: "#2e3b50",
+  shoes: "#583417",
+  curly: true,
+  glasses: "#1f3a63",
+  tie: { collar: "#f5f0e4", color: "#2f62a8" },
 };
 
 export const GUIDE_PALETTE: Palette = {
@@ -33,6 +42,14 @@ export const SMITH_PALETTE: Palette = {
   pants: "#3d3d46",
   shoes: "#222",
   apron: "#6e6e78",
+};
+
+export const CLERK_PALETTE: Palette = {
+  skin: "#e9b88a",
+  hair: "#a8782e",
+  shirt: "#2e8b57",
+  pants: "#3d3d46",
+  shoes: "#222",
 };
 
 export const READER_PALETTE: Palette = {
@@ -54,7 +71,7 @@ function legs(ctx: Ctx, ox: number, oy: number, p: Palette, frame: number, side:
   const rightLift = frame === 2 ? 1 : 0;
   if (side) {
     const lead = frame === 1 ? -1 : frame === 2 ? 1 : 0;
-    rect(ctx, ox + 6 + lead, oy + 11, 3, 3 - Math.abs(lead) * 0, p.pants);
+    rect(ctx, ox + 6 + lead, oy + 11, 3, 3, p.pants);
     rect(ctx, ox + 7 - lead, oy + 11, 3, 3, p.pants);
     rect(ctx, ox + 6 + lead, oy + 14, 3, 1, p.shoes);
     rect(ctx, ox + 7 - lead, oy + 14, 3, 1, p.shoes);
@@ -79,8 +96,20 @@ function drawFrame(ctx: Ctx, ox: number, oy: number, dir: Dir, frame: number, p:
     rect(ctx, ox + 5, oy + 1, 6, 2, p.hair);
     rect(ctx, ox + 4, oy + 2, 1, p.longHair ? 6 : 2, p.hair);
     rect(ctx, ox + 11, oy + 2, 1, p.longHair ? 6 : 2, p.hair);
+    if (p.curly) {
+      rect(ctx, ox + 4, oy + 1, 8, 1, p.hair);
+      rect(ctx, ox + 3, oy + 2, 1, 3, p.hair);
+      rect(ctx, ox + 12, oy + 2, 1, 3, p.hair);
+      dot(ctx, ox + 6, oy + 3, p.hair);
+      dot(ctx, ox + 9, oy + 3, p.hair);
+    }
+    if (p.glasses) rect(ctx, ox + 5, oy + 4, 6, 1, p.glasses);
     dot(ctx, ox + 6, oy + 4, "#222");
     dot(ctx, ox + 9, oy + 4, "#222");
+    if (p.tie) {
+      rect(ctx, ox + 7, oy + 7, 2, 4, p.tie.collar);
+      rect(ctx, ox + 7, oy + 8, 2, 3, p.tie.color);
+    }
   } else if (dir === "up") {
     legs(ctx, ox, oy, p, frame, false);
     rect(ctx, ox + 4, oy + 7, 8, 4, p.shirt);
@@ -92,6 +121,11 @@ function drawFrame(ctx: Ctx, ox: number, oy: number, dir: Dir, frame: number, p:
     rect(ctx, ox + 5, oy + 1, 6, 1, p.hair);
     rect(ctx, ox + 4, oy + 2, 1, p.longHair ? 6 : 3, p.hair);
     rect(ctx, ox + 11, oy + 2, 1, p.longHair ? 6 : 3, p.hair);
+    if (p.curly) {
+      rect(ctx, ox + 4, oy + 1, 8, 1, p.hair);
+      rect(ctx, ox + 3, oy + 2, 1, 4, p.hair);
+      rect(ctx, ox + 12, oy + 2, 1, 4, p.hair);
+    }
     if (p.longHair) rect(ctx, ox + 5, oy + 7, 6, 2, p.hair);
   } else {
     legs(ctx, ox, oy, p, frame, true);
@@ -102,6 +136,12 @@ function drawFrame(ctx: Ctx, ox: number, oy: number, dir: Dir, frame: number, p:
     rect(ctx, ox + 5, oy + 2, 5, 5, p.skin);
     rect(ctx, ox + 5, oy + 1, 6, 2, p.hair);
     rect(ctx, ox + 8, oy + 2, 3, p.longHair ? 6 : 4, p.hair);
+    if (p.curly) {
+      rect(ctx, ox + 5, oy + 1, 7, 1, p.hair);
+      rect(ctx, ox + 11, oy + 2, 1, 4, p.hair);
+      rect(ctx, ox + 4, oy + 2, 1, 2, p.hair);
+    }
+    if (p.glasses) rect(ctx, ox + 5, oy + 4, 3, 1, p.glasses);
     dot(ctx, ox + 6, oy + 4, "#222");
   }
 }

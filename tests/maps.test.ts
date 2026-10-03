@@ -99,7 +99,7 @@ describe("town contents", () => {
   it("only places NPCs that have dialog", () => {
     for (const npc of town.npcs) expect(NPCS[npc.id], npc.id).toBeDefined();
     expect(town.npcs.length).toBeGreaterThanOrEqual(2);
-    expect(town.npcs.length).toBeLessThanOrEqual(3);
+    expect(town.npcs.length).toBeLessThanOrEqual(4);
   });
 
   it("links the house interior back to town and has the retro computer", () => {

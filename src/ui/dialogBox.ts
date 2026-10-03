@@ -9,6 +9,7 @@ export class DialogBox {
   private speaker!: HTMLElement;
   private text!: HTMLElement;
   private next!: HTMLButtonElement;
+  private onClose: (() => void) | null = null;
 
   constructor(
     private readonly root: HTMLElement,
@@ -19,8 +20,11 @@ export class DialogBox {
     return this.box !== null;
   }
 
-  open(lines: readonly DialogLine[]): void {
+  /** `onClose` runs after the box closes, however it was closed (finished or Esc). */
+  open(lines: readonly DialogLine[], onClose?: () => void): void {
+    this.onClose = null;
     if (this.box) this.close();
+    this.onClose = onClose ?? null;
     this.runner = new DialogRunner(lines);
     this.returnFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
@@ -52,6 +56,9 @@ export class DialogBox {
     const target = this.returnFocus;
     this.returnFocus = null;
     if (target && document.contains(target)) target.focus({ preventScroll: true });
+    const callback = this.onClose;
+    this.onClose = null;
+    callback?.();
   }
 
   private advance(): void {

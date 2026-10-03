@@ -1,5 +1,6 @@
 import type { Zone } from "../systems/interaction";
 import type { BuildingId } from "../content/buildings";
+import { GEM_IDS, type SkillGroup } from "../systems/quests/helpers";
 import { mulberry32 } from "./art/pixel";
 import type { MapDef, NpcDef, PropDef, Spawn } from "./mapTypes";
 import { T, TILE } from "./tiles";
@@ -27,6 +28,13 @@ const PLAZA = { x0: 18, y0: 15, x1: 29, y1: 24 };
 const FOUNTAIN = { tx: 23, ty: 19 };
 const BOARD = { tx: 20, ty: 16 };
 const POND = { x0: 10, y0: 17, x1: 14, y1: 20 };
+
+/** Skill gems tucked into corners of the town, one per skill group. */
+const GEM_SPOTS: ReadonlyArray<{ group: SkillGroup; tx: number; ty: number; frame: number }> = [
+  { group: "Advanced", tx: 3, ty: 8, frame: 0 },
+  { group: "Proficient", tx: 44, ty: 22, frame: 1 },
+  { group: "Growing", tx: 44, ty: 3, frame: 2 },
+];
 
 class Grid {
   readonly ground: number[];
@@ -231,6 +239,23 @@ export function buildTown(): MapDef {
   g.block(39, 31, 39, 31);
   props.push({ texture: "mailbox", x: tilePx(39) + 8, y: tilePx(32) });
 
+  // Hidden skill gems. Reserved first so scattered trees never wall them in.
+  for (const { group, tx, ty, frame } of GEM_SPOTS) {
+    g.reserve(tx - 1, ty - 1, tx + 1, ty + 1);
+    const item = GEM_IDS[group];
+    props.push({ texture: "gem", frame, x: tilePx(tx) + 8, y: tilePx(ty + 1) - 2, item });
+    zones.push({
+      id: `gem-${group.toLowerCase()}`,
+      x: tilePx(tx) - 8,
+      y: tilePx(ty) - 8,
+      w: 32,
+      h: 32,
+      prompt: "Pick up the glinting gem",
+      action: { type: "gem", group },
+      item,
+    });
+  }
+
   // Border trees (impassable) and scattered decor.
   const trees: Array<[number, number]> = [];
   for (let y = 0; y < TOWN_ROWS; y++) {
@@ -262,6 +287,7 @@ export function buildTown(): MapDef {
     { id: "guide", texture: "npc-guide", x: tilePx(28) + 8, y: tilePx(19) + 14, facing: "left" },
     { id: "smith", texture: "npc-smith", x: tilePx(40) + 8, y: tilePx(10) + 14, facing: "left" },
     { id: "reader", texture: "npc-reader", x: tilePx(12) + 8, y: tilePx(31) + 14, facing: "left" },
+    { id: "clerk", texture: "npc-clerk", x: tilePx(33) + 8, y: tilePx(31) + 14, facing: "right" },
   ];
   for (const npc of npcs) {
     const tx = Math.floor(npc.x / TILE);

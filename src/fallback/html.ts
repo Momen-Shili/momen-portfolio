@@ -93,7 +93,7 @@ export function experienceHtml(): string {
 export function aboutHtml(): string {
   return `<div class="about">
   <div class="about-head">
-    <div class="avatar" aria-hidden="true">${esc(PROFILE.initials)}</div>
+    <img class="avatar" src="/art/portrait-avatar.png" width="64" height="64" alt="Pixel-art portrait of ${esc(PROFILE.name)}">
     <div>
       <p class="about-name">${esc(PROFILE.name)}</p>
       <p class="about-title">${esc(PROFILE.title)}</p>

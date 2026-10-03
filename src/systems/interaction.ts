@@ -1,10 +1,11 @@
-export type PanelId = "projects" | "skills" | "contact" | "about" | "board" | "terminal";
+export type PanelId = "projects" | "skills" | "contact" | "about" | "board" | "terminal" | "quests";
 
 export type ZoneAction =
   | { type: "panel"; panel: PanelId }
   | { type: "enter"; map: string; spawn: string }
   | { type: "exit"; map: string; spawn: string }
   | { type: "dialog"; npc: string }
+  | { type: "gem"; group: "Advanced" | "Proficient" | "Growing" }
   | { type: "wish" };
 
 /** Interaction area in world pixels. */
@@ -16,6 +17,8 @@ export interface Zone {
   h: number;
   prompt: string;
   action: ZoneAction;
+  /** Collectible id: the zone disappears once the player owns this item. */
+  item?: string;
 }
 
 function contains(z: Zone, px: number, py: number): boolean {

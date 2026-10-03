@@ -3,11 +3,12 @@
  *
  * Every texture the game uses is listed here. By default each one is generated in code
  * (src/world/art). To swap in real art, add a `file` to an entry (path relative to /public,
- * e.g. "assets/player.png") and keep `frame` if it is a spritesheet - nothing else changes.
+ * e.g. "art/player.png") and keep `frame` if it is a spritesheet - nothing else changes.
  */
 import { drawBuilding, BUILDING_STYLES } from "../world/art/buildings";
 import {
   CHARACTER_FRAME,
+  CLERK_PALETTE,
   GUIDE_PALETTE,
   PLAYER_PALETTE,
   READER_PALETTE,
@@ -34,6 +35,7 @@ export const ASSETS: readonly AssetSpec[] = [
   { key: "npc-guide", frame: char, draw: () => drawCharacterSheet(GUIDE_PALETTE) },
   { key: "npc-smith", frame: char, draw: () => drawCharacterSheet(SMITH_PALETTE) },
   { key: "npc-reader", frame: char, draw: () => drawCharacterSheet(READER_PALETTE) },
+  { key: "npc-clerk", frame: char, draw: () => drawCharacterSheet(CLERK_PALETTE) },
 
   { key: "building-house", draw: () => drawBuilding(BUILDING_STYLES.house) },
   { key: "building-workshop", draw: () => drawBuilding(BUILDING_STYLES.workshop) },
@@ -42,6 +44,7 @@ export const ASSETS: readonly AssetSpec[] = [
 
   { key: "tree", draw: props.drawTree },
   { key: "bush", draw: props.drawBush },
+  { key: "gem", frame: { width: 12, height: 12 }, draw: props.drawGems },
   { key: "fountain", frame: { width: 32, height: 32 }, draw: props.drawFountain },
   { key: "lamp", draw: props.drawLamp },
   { key: "bench", draw: props.drawBench },
@@ -52,7 +55,8 @@ export const ASSETS: readonly AssetSpec[] = [
   { key: "anvil", draw: props.drawAnvil },
 
   { key: "bookshelf", draw: props.drawBookshelf },
-  { key: "portrait", draw: props.drawPortrait },
+  // Framed portrait supplied by Momen (art-source/portrait.png, baked to 22x26 by hand).
+  { key: "portrait", file: "art/portrait.png", draw: props.drawPortrait },
   { key: "frames", draw: props.drawFrames },
   { key: "computer", frame: { width: 34, height: 30 }, draw: props.drawComputerDesk },
   { key: "rug", draw: props.drawRug },

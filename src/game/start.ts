@@ -3,6 +3,10 @@ import { BootScene } from "../scenes/BootScene";
 import { WorldScene } from "../scenes/WorldScene";
 import { Sfx } from "../systems/audio";
 import { InputState } from "../systems/input";
+import { QUESTS } from "../systems/quests/definitions";
+import { QuestEngine } from "../systems/quests/engine";
+import { describeNotification } from "../systems/quests/notify";
+import { ProgressStore, createSafeStorage } from "../systems/quests/storage";
 import { DialogBox } from "../ui/dialogBox";
 import { el, isTouchDevice } from "../ui/dom";
 import { Hud } from "../ui/hud";
@@ -11,6 +15,7 @@ import { PanelManager } from "../ui/panels";
 import { showTitle } from "../ui/title";
 import { VirtualControls } from "../ui/virtualControls";
 import type { GameContext } from "./context";
+import { QuestDirector } from "./questDirector";
 
 export interface RunningGame {
   destroy(): void;
@@ -22,6 +27,7 @@ export function startGame(root: HTMLElement): RunningGame {
   root.replaceChildren(canvasHost, ui);
 
   const sfx = new Sfx();
+  const quests = new QuestEngine(QUESTS, new ProgressStore(createSafeStorage(), QUESTS));
   const state = { title: true, panel: false, dialog: false };
   const isBlocked = (): boolean => state.title || state.panel || state.dialog;
   const input = new InputState(window, isBlocked);
@@ -43,6 +49,7 @@ export function startGame(root: HTMLElement): RunningGame {
   const ctx: GameContext = {
     input,
     sfx,
+    quests,
     world: null,
     isBlocked,
     setLoadingProgress,
@@ -67,6 +74,7 @@ export function startGame(root: HTMLElement): RunningGame {
     panels: null as unknown as PanelManager,
     dialog: null as unknown as DialogBox,
     hud: null as unknown as Hud,
+    director: null as unknown as QuestDirector,
   };
 
   const panels = new PanelManager(ui, {
@@ -78,6 +86,7 @@ export function startGame(root: HTMLElement): RunningGame {
       syncUi();
     },
     teleport: (target) => ctx.world?.teleport(target),
+    quests,
   });
   const dialog = new DialogBox(ui, (open) => {
     state.dialog = open;
@@ -96,13 +105,33 @@ export function startGame(root: HTMLElement): RunningGame {
       onHelp: () => {
         if (!isBlocked()) panels.open("board");
       },
+      onQuests: () => {
+        if (!isBlocked()) panels.open("quests");
+      },
     },
     false,
   );
   hud.setVisible(false);
   const controls = isTouchDevice() ? new VirtualControls(ui, input) : null;
   controls?.setVisible(false);
-  Object.assign(ctx, { panels, dialog, hud });
+  const director = new QuestDirector(quests, { dialog, panels });
+  Object.assign(ctx, { panels, dialog, hud, director });
+
+  const refreshQuestUi = (): void => hud.setQuestCount(quests.doneCount, quests.total);
+  refreshQuestUi();
+  const stopQuestUi = quests.subscribe((notes) => {
+    refreshQuestUi();
+    for (const note of notes) hud.showQuestToast(describeNotification(note));
+  });
+  /** Q opens the quest log from anywhere in the world. */
+  const onQuestKey = (e: KeyboardEvent): void => {
+    if (e.key.toLowerCase() !== "q" || e.ctrlKey || e.metaKey || e.altKey || e.repeat) return;
+    const tag = (e.target as HTMLElement | null)?.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || isBlocked()) return;
+    e.preventDefault();
+    panels.open("quests");
+  };
+  window.addEventListener("keydown", onQuestKey);
 
   game = new Phaser.Game({
     type: Phaser.AUTO,
@@ -123,6 +152,8 @@ export function startGame(root: HTMLElement): RunningGame {
   return {
     destroy: () => {
       closeTitle?.();
+      window.removeEventListener("keydown", onQuestKey);
+      stopQuestUi();
       input.destroy();
       panels.destroy();
       dialog.close();

@@ -63,13 +63,13 @@ Every texture is listed in **`src/config/assets.ts`**. By default each is genera
 (`src/world/art/`). To use real art, add a `file` to that entry:
 
 ```ts
-{ key: "player", file: "assets/player.png", frame: { width: 16, height: 16 } },
+{ key: "player", file: "art/player.png", frame: { width: 16, height: 16 } },
 ```
 
-Put the image in `public/assets/`. Sheet layout for characters: 3 columns (idle, walk A, walk B) by
+Put the image in `public/art/`. Sheet layout for characters: 3 columns (idle, walk A, walk B) by
 3 rows (down, up, left); right-facing is the left row flipped. The tileset is a single row of 16x16
-tiles in the order of `src/world/tiles.ts`. The portrait on the house wall currently shows your
-initials; replace the `portrait` entry with a pixel portrait when you have one.
+tiles in the order of `src/world/tiles.ts`. The framed portrait on the house wall and the About avatar use `public/art/portrait*.png`
+(originals are kept in `art-source/`).
 
 Maps are plain data in `src/world/townMap.ts` and `src/world/houseMap.ts` (a Tiled export is not
 needed). `tests/maps.test.ts` checks that every door, NPC and spawn is reachable.

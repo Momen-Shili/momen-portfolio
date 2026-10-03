@@ -1,13 +1,21 @@
 import type { BuildingId } from "../content/buildings";
 import { aboutHtml, boardHtml, contactLinksHtml, projectsHtml, skillsHtml } from "../fallback/html";
 import type { PanelId } from "../systems/interaction";
+import type { QuestEngine } from "../systems/quests/engine";
 import { createContactForm } from "./contactForm";
+import { createQuestLog } from "./questLog";
 import { el, focusableIn, nextId } from "./dom";
 import { createTerminal } from "./sections/terminalView";
 
 export interface PanelContext {
   close(): void;
   teleport(target: BuildingId): void;
+  quests: QuestEngine;
+}
+
+export interface PanelOptions {
+  /** Project name to feature when the Workshop panel opens (special delivery quest). */
+  highlightProject?: string;
 }
 
 interface PanelView {
@@ -19,7 +27,7 @@ interface PanelView {
 interface PanelDef {
   title: string;
   variant: string;
-  render(ctx: PanelContext): PanelView;
+  render(ctx: PanelContext, options: PanelOptions): PanelView;
 }
 
 function htmlView(html: string): PanelView {
@@ -28,12 +36,28 @@ function htmlView(html: string): PanelView {
   return { element };
 }
 
+/** Features one project: a banner above the list, the card marked and scrolled into view. */
+function highlightProject(root: HTMLElement, name: string): void {
+  const cards = [...root.querySelectorAll<HTMLElement>(".project")];
+  const card = cards.find((c) => c.querySelector(".project-name")?.textContent === name);
+  if (!card) return;
+  card.classList.add("is-featured");
+  const banner = el("p", { class: "featured-banner", role: "status" }, `Special delivery: ${name}`);
+  root.prepend(banner);
+  card.setAttribute("data-featured", "true");
+  window.requestAnimationFrame(() => card.scrollIntoView({ block: "nearest" }));
+}
+
 const DEFS: Record<PanelId, PanelDef> = {
   about: { title: "About", variant: "parchment", render: () => htmlView(aboutHtml()) },
   projects: {
     title: "Workshop: Projects",
     variant: "parchment",
-    render: () => htmlView(projectsHtml()),
+    render: (_ctx, options) => {
+      const view = htmlView(projectsHtml());
+      if (options.highlightProject) highlightProject(view.element, options.highlightProject);
+      return view;
+    },
   },
   skills: { title: "Library: Skills", variant: "parchment", render: () => htmlView(skillsHtml()) },
   board: { title: "Notice board", variant: "parchment", render: () => htmlView(boardHtml()) },
@@ -45,6 +69,14 @@ const DEFS: Record<PanelId, PanelDef> = {
       const { form, firstField } = createContactForm();
       element.append(el("h3", {}, "Send a message"), form);
       return { element, focus: firstField };
+    },
+  },
+  quests: {
+    title: "Quest log",
+    variant: "parchment",
+    render: (ctx) => {
+      const { element, focus } = createQuestLog(ctx.quests);
+      return { element, focus };
     },
   },
   terminal: {
@@ -67,6 +99,7 @@ export class PanelManager {
     private readonly handlers: {
       onChange(open: boolean): void;
       teleport(target: BuildingId): void;
+      quests: QuestEngine;
     },
   ) {}
 
@@ -74,20 +107,24 @@ export class PanelManager {
     return this.overlay !== null;
   }
 
-  open(id: PanelId): void {
+  open(id: PanelId, options: PanelOptions = {}): void {
     if (this.overlay) this.close();
     const def = DEFS[id];
     this.returnFocus =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
     const titleId = nextId("panel-title");
-    const view = def.render({
-      close: () => this.close(),
-      teleport: (target) => {
-        this.close();
-        this.handlers.teleport(target);
+    const view = def.render(
+      {
+        close: () => this.close(),
+        teleport: (target) => {
+          this.close();
+          this.handlers.teleport(target);
+        },
+        quests: this.handlers.quests,
       },
-    });
+      options,
+    );
 
     const closeBtn = el(
       "button",

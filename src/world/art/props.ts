@@ -21,6 +21,35 @@ export function drawTree(): HTMLCanvasElement {
   return canvas;
 }
 
+/** Three 12x12 frames: ruby (Advanced), sapphire (Proficient), emerald (Growing). */
+export function drawGems(): HTMLCanvasElement {
+  const [canvas, ctx] = createCanvas(36, 12);
+  const colors = ["#e0405a", "#3d9be9", "#3ecf6e"];
+  const rows: ReadonlyArray<[number, number]> = [
+    [4, 7],
+    [3, 8],
+    [2, 9],
+    [1, 10],
+    [1, 10],
+    [2, 9],
+    [3, 8],
+    [4, 7],
+    [5, 6],
+  ];
+  colors.forEach((color, f) => {
+    const ox = f * 12;
+    rows.forEach(([x0, x1], i) => {
+      const y = i + 1;
+      const tone = i < 3 ? shade(color, 0.3) : i < 5 ? color : shade(color, -0.3);
+      rect(ctx, ox + x0, y, x1 - x0 + 1, 1, tone);
+    });
+    rect(ctx, ox + 5, 4, 2, 1, shade(color, 0.55));
+    dot(ctx, ox + 4, 3, "#ffffff");
+  });
+  outline(canvas, "#2a1c10");
+  return canvas;
+}
+
 export function drawBush(): HTMLCanvasElement {
   const [canvas, ctx] = createCanvas(18, 14);
   disc(ctx, 9, 7, 5, "#2a8535");

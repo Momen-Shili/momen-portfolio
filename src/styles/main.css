@@ -459,13 +459,10 @@ kbd {
   gap: 14px;
 }
 .avatar {
-  display: grid;
-  place-items: center;
   flex: none;
-  width: 64px;
-  height: 64px;
-  font: 800 24px var(--mono);
-  color: #fff8e4;
+  width: 96px;
+  height: 96px;
+  image-rendering: pixelated;
   background: #e4572e;
   border: 4px solid var(--wood-dark);
 }
@@ -918,4 +915,107 @@ kbd {
     transition: none !important;
     scroll-behavior: auto !important;
   }
+}
+
+/* ---------- quests ---------- */
+
+.hud-top {
+  flex-direction: column;
+  align-items: flex-end;
+}
+.quest-toasts {
+  position: absolute;
+  left: 50%;
+  top: 56px;
+  display: grid;
+  gap: 6px;
+  width: min(420px, calc(100% - 32px));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.quest-toast {
+  margin: 0;
+  padding: 8px 12px;
+  font: 600 14px var(--sans);
+  color: var(--ink);
+  background: #ffe9a8;
+  border: 3px solid var(--wood-dark);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35);
+}
+.quest-top {
+  display: grid;
+  gap: 6px;
+}
+.quest-summary {
+  margin: 0;
+  font: 800 18px var(--mono);
+}
+.quest-meter {
+  width: 100%;
+  height: 14px;
+  accent-color: #2e8b57;
+}
+.quest-note {
+  margin: 8px 0 0;
+  color: var(--ink-soft);
+}
+.quest-list,
+.badge-list {
+  display: grid;
+  gap: 8px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+.quest {
+  padding: 8px 12px;
+  background: #fff8e4;
+  border: 3px solid var(--wood);
+}
+.quest p {
+  margin: 4px 0 0;
+}
+.quest-title {
+  margin: 0;
+  font: 800 16px var(--mono);
+}
+.quest-done {
+  border-color: #2e8b57;
+}
+.quest-locked {
+  border-style: dashed;
+}
+.quest-step {
+  font-weight: 700;
+}
+.quest-hint,
+.quest-empty {
+  color: var(--ink-soft);
+}
+.quest-reward {
+  font-weight: 700;
+  color: #0f4d1e;
+}
+.badge-chip {
+  padding: 4px 10px;
+  font: 600 13px var(--sans);
+  background: #ffe9a8;
+  border: 2px solid var(--wood-dark);
+}
+.quest-reset {
+  margin-top: 18px;
+}
+.featured-banner {
+  padding: 8px 12px;
+  margin: 0 0 12px;
+  font-weight: 700;
+  background: #ffe9a8;
+  border: 3px solid var(--wood-dark);
+}
+.project.is-featured {
+  border-color: #c99a2e;
+  box-shadow: 0 0 0 3px #ffe9a8;
+}
+.quest-section {
+  margin-top: 16px;
 }

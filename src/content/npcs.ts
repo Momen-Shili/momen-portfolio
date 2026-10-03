@@ -57,6 +57,20 @@ export const NPCS: Record<string, NpcContent> = {
       ),
     ],
   },
+  clerk: {
+    id: "clerk",
+    name: "Post office clerk",
+    lines: [
+      first(
+        "Post office clerk",
+        "Welcome to the post office! This is the Contact section of the portfolio.",
+      ),
+      first(
+        "Post office clerk",
+        "Step inside to send an email, or copy the email, LinkedIn and GitHub links.",
+      ),
+    ],
+  },
   reader: {
     id: "reader",
     name: "Librarian",
