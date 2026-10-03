@@ -510,3 +510,48 @@ kbd {
   transition: none !important;
   scroll-behavior: auto !important;
 }
+
+.noscript-note {
+  padding: 12px 16px;
+  margin: 0;
+  color: var(--ink);
+  background: #ffe9a8;
+  border-bottom: 3px solid var(--wood-dark);
+}
+.noscript-note a {
+  color: #0b4aa8;
+}
+
+/* Contact form extras: the honeypot is invisible but stays in the DOM for bots to find. */
+.hp-field {
+  position: absolute;
+  left: -10000px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+.form-failure:empty {
+  display: none;
+}
+.form-failure {
+  padding: 8px 12px;
+  margin: 0;
+  font-weight: 600;
+  color: #6b1414;
+  background: #ffd0d0;
+  border: 2px solid #a4161a;
+}
+.form-failure a {
+  color: #6b1414;
+}
+.form-status:empty {
+  display: none;
+}
+.form-again {
+  justify-self: start;
+}
+.form-privacy {
+  margin: 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}

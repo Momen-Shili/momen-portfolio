@@ -82,7 +82,7 @@ const DEFS: Record<PanelId, PanelDef> = {
     variant: "parchment",
     render: () => {
       const { element } = htmlView(contactLinksHtml());
-      const { form, firstField } = createContactForm();
+      const { form, firstField } = createContactForm("game-post-office");
       element.append(el("h3", {}, "Send a message"), form);
       return { element, focus: firstField };
     },
